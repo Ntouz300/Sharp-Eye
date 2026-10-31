@@ -77,7 +77,10 @@ export function Help() {
       <section className="settings-card">
         <h2>S’entraîner</h2>
         <ul className="month-notes">
-          <li><strong>Puzzles</strong> : chaque erreur, gaffe ou occasion manquée de tes parties analysées devient un puzzle. Réussi, il revient après 1, 3, 7 puis 21 jours ; raté, il revient le lendemain. Le défi du jour propose un puzzle difficile, une seule chance.</li>
+          <li><strong>L’accueil</strong> : « À faire aujourd’hui » enchaîne le défi du jour et les défis à revoir ; « Défis par thème » propose des combinaisons à ton niveau ; « Sur mes parties » reprend tes erreurs et ta dernière partie ; « Ma progression » montre ta série, tes réussites de la semaine et ton thème le plus faible.</li>
+          <li><strong>Défis en plusieurs coups</strong> : la consigne dit le but (« Les blancs jouent et gagnent une pièce en 3 coups »). Tu joues, le moteur défend au mieux et chaque bon coup est expliqué. Un coup qui gagne autant (0,3 pion près, ou le même mat) est accepté. Une erreur est réfutée sur l’échiquier, expliquée en une phrase, puis tu réessaies. À la fin, « Pourquoi c’est le meilleur » compare la combinaison, ton coup de la partie et la tentative la plus naturelle, à rejouer pas à pas.</li>
+          <li><strong>Points et niveau</strong> : 3 points par défi, moins un par indice (thème, puis pièce, puis case) et par erreur. 3 réussites de suite font monter le niveau proposé, 2 échecs le font baisser. Réussi sans erreur, un défi revient après 1, 3, 7 puis 21 jours ; sinon il revient le lendemain.</li>
+          <li><strong>D’où viennent les défis</strong> : de tes gaffes, erreurs et occasions manquées (seulement quand le premier coup est unique), et d’une banque intégrée classée par thème, qui marche hors ligne.</li>
           <li><strong>Devine le coup</strong> : depuis la revue, l’app cache la suite et note chacun de tes coups (3 points pour le meilleur coup du moteur).</li>
           <li><strong>Rejouer contre le moteur</strong> : reprends la position affichée face à Stockfish, de 800 à 2800 Elo.</li>
           <li><strong>Progrès</strong> : précision dans le temps, bilan du mois, répertoire d’ouvertures, faiblesses tactiques et badges.</li>
@@ -100,7 +103,7 @@ export function Help() {
         <h2>À propos</h2>
         <p className="small muted">
           Sharp Eye est un logiciel libre (GPL 3). Moteur : Stockfish 18 (GPL 3) via stockfish.js. Pièces : jeu « cburnett » de Colin M. L. Burnett
-          (GPL 2+ / CC BY-SA 3.0 / BSD). Ouvertures : lichess-org/chess-openings (CC0). Toutes tes parties restent sur ton appareil.
+          (GPL 2+ / CC BY-SA 3.0 / BSD). Ouvertures : lichess-org/chess-openings (CC0). Banque de défis : positions générées par Sharp Eye avec Stockfish, à partir de ces ouvertures. Toutes tes parties restent sur ton appareil.
         </p>
       </section>
     </div>
