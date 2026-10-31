@@ -1,0 +1,14 @@
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/AbCdEfGh"]
+[Date "2026.09.30"]
+[White "joueur_b"]
+[Black "joueur_a"]
+[Result "0-1"]
+[WhiteElo "1650"]
+[BlackElo "1702"]
+[TimeControl "180+2"]
+[ECO "B01"]
+[Opening "Scandinavian Defense"]
+[Termination "Time forfeit"]
+
+{ Partie commentée } 1. e4 { [%eval 0.3] [%clk 0:03:00] } 1... d5 { [%eval 0.5] [%clk 0:03:00] } 2. exd5 $1 { [%clk 0:02:59] [%csl Gd5][%cal Gd1d5,Rb8c6] Bien vu } ( 2. e5 { avance } c5 $5 ( 2... Bf5 ) 3. c3 ) 2... Qxd5 { [%eval #-3] [%clk 0:02:58] } 3. Nc3!? { [%clk 0:02:57] } 3... Qa5?! { [%clk 0:02:55] } 4. d4 Nf6 5. Nf3 c6 6. Bc4 Bf5 7. Bd2 e6 8. Qe2 $2 Bb4 0-1

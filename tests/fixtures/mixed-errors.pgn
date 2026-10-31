@@ -1,0 +1,22 @@
+[Event "Bonne 1"]
+[White "A"]
+[Black "B"]
+[Result "1-0"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+[Event "Mauvaise"]
+[White "Carla"]
+[Black "David"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 5. Ke3 Qd4 6. Ke7 *
+
+[Event "Bonne 2"]
+[White "E"]
+[Black "F"]
+[Result "1/2-1/2"]
+[SetUp "1"]
+[FEN "8/8/8/4k3/8/8/4P3/4K3 w - - 0 1"]
+
+1. Kd2 Kd4 2. e3+ Ke4 1/2-1/2

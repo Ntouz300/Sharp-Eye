@@ -1,0 +1,77 @@
+/* Design tokens par thème. Un nouveau thème = un bloc ci-dessous + une entrée dans themes.ts. */
+
+:root,
+[data-theme='tournoi'] {
+  --bg: #f6f0e2;
+  --surface: #fffbf2;
+  --surface-2: #efe5d0;
+  --border: #dccdb0;
+  --text: #2b2118;
+  --text-muted: #6a5a48;
+  --accent: #8a4b1e;
+  --accent-text: #ffffff;
+  --sq-light: #eeddbb;
+  --sq-dark: #b58863;
+  --coord-on-light: #8a6440;
+  --coord-on-dark: #f3e6cc;
+  --last-move: rgba(205, 180, 60, 0.45);
+  --arrow-played: rgba(120, 72, 30, 0.75);
+  --arrow-best: rgba(40, 140, 70, 0.85);
+  --eval-white: #fffdf8;
+  --eval-black: #3a2e24;
+  --graph-bg: #3a2e24;
+  --graph-fill: #fffdf8;
+  --font-accent: 'Georgia', 'Times New Roman', serif;
+  --shadow: 0 1px 2px rgba(60, 40, 20, 0.12), 0 4px 16px rgba(60, 40, 20, 0.08);
+  color-scheme: light;
+}
+
+[data-theme='minuit'] {
+  --bg: #0e1726;
+  --surface: #16233a;
+  --surface-2: #1d2d48;
+  --border: #2b3f60;
+  --text: #e6eef8;
+  --text-muted: #9fb2c9;
+  --accent: #4fd1e8;
+  --accent-text: #08202a;
+  --sq-light: #9fb4c7;
+  --sq-dark: #3e5468;
+  --coord-on-light: #3e5468;
+  --coord-on-dark: #c9d7e4;
+  --last-move: rgba(79, 209, 232, 0.38);
+  --arrow-played: rgba(230, 238, 248, 0.7);
+  --arrow-best: rgba(80, 220, 140, 0.9);
+  --eval-white: #e6eef8;
+  --eval-black: #0a111d;
+  --graph-bg: #0a111d;
+  --graph-fill: #c9d7e4;
+  --font-accent: 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+[data-theme='ardoise'] {
+  --bg: #1e2226;
+  --surface: #282d33;
+  --surface-2: #323840;
+  --border: #414952;
+  --text: #eef1f4;
+  --text-muted: #aab3bd;
+  --accent: #9cc3ff;
+  --accent-text: #0f1a2b;
+  --sq-light: #d9dde1;
+  --sq-dark: #7d8794;
+  --coord-on-light: #5d6672;
+  --coord-on-dark: #eef1f4;
+  --last-move: rgba(156, 195, 255, 0.45);
+  --arrow-played: rgba(40, 46, 54, 0.7);
+  --arrow-best: rgba(60, 170, 90, 0.9);
+  --eval-white: #eef1f4;
+  --eval-black: #15181b;
+  --graph-bg: #15181b;
+  --graph-fill: #d9dde1;
+  --font-accent: 'SF Pro Rounded', 'Avenir Next', system-ui, sans-serif;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 18px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
