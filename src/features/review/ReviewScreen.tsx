@@ -218,18 +218,42 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
   }, [narration, ply, game, analysis]);
   useEffect(() => () => stopSpeaking(), []);
 
+  // Présentation : vrai plein écran si le navigateur le permet (webkit sur iPad), sinon plein écran dans la page.
+  // L'état suit fullscreenchange : quitter par le geste du système quitte aussi la présentation.
   useEffect(() => {
-    document.body.classList.toggle('presenting', presenting);
     if (!presenting) return;
+    document.body.classList.add('presenting');
+    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => void };
     const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => undefined);
-    else el.webkitRequestFullscreen?.();
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setPresenting(false);
+    const fsElement = () => document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+    let wentFullscreen = false;
+    const onChange = () => {
+      if (fsElement()) wentFullscreen = true;
+      else if (wentFullscreen || document.fullscreenEnabled) setPresenting(false);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    try {
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => undefined);
+      else el.webkitRequestFullscreen?.();
+    } catch {
+      /* pas de plein écran (iPhone, app installée) : le mode reste dans la page */
+    }
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector('.sheet-layer')) setPresenting(false);
+    };
     window.addEventListener('keydown', onEsc);
     return () => {
       window.removeEventListener('keydown', onEsc);
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
       document.body.classList.remove('presenting');
-      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+      try {
+        if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+        else if (doc.webkitFullscreenElement) doc.webkitExitFullscreen?.();
+      } catch {
+        /* déjà sorti */
+      }
     };
   }, [presenting]);
 

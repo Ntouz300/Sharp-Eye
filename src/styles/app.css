@@ -2388,11 +2388,35 @@ body.presenting .tabbar {
   display: none;
 }
 
+/* Présentation : l'échiquier occupe tout l'écran (vrai plein écran ou plein écran dans la page). */
 .moves-view.presenting {
-  --board: min(calc(100dvh - 90px), calc(100vw - 420px));
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: var(--bg);
+  overflow: hidden;
+  --pad: 16px;
+  padding: max(var(--pad), env(safe-area-inset-top)) max(var(--pad), env(safe-area-inset-right)) max(var(--pad), env(safe-area-inset-bottom)) max(var(--pad), env(safe-area-inset-left));
+  grid-template-columns: auto minmax(0, 340px);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  justify-content: center;
+  /* Paysage : hauteur moins les marges ; largeur moins la barre d'évaluation (18) et le panneau (340 + 16). */
+  --board: min(calc(100dvh - 2 * var(--pad) - env(safe-area-inset-top) - env(safe-area-inset-bottom)), calc(100vw - 2 * var(--pad) - 374px));
 }
 
-.moves-view.presenting .move-panel > :not(.move-card) {
+.moves-view.presenting .player-strip,
+.moves-view.presenting .slim-graph {
+  display: none;
+}
+
+.moves-view.presenting .move-panel {
+  height: auto;
+  max-height: 100%;
+  padding-top: 60px;
+}
+
+.moves-view.presenting .move-panel > :not(.move-card):not(.move-nav) {
   display: none;
 }
 
@@ -2402,9 +2426,12 @@ body.presenting .tabbar {
 
 .present-exit {
   position: fixed;
-  top: 12px;
-  right: 12px;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
   z-index: 30;
+  width: 48px;
+  height: 48px;
+  box-shadow: var(--shadow);
 }
 
 /* ---------- Petits écrans et portrait ---------- */
@@ -2539,4 +2566,26 @@ body.presenting .tabbar {
 
 .batch-scope {
   margin: 0;
+}
+
+/* Présentation en portrait et sur téléphone : échiquier en haut, commentaire et flèches dessous. */
+@media (max-width: 999px), (orientation: portrait) {
+  .moves-view.presenting {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-rows: max-content;
+    align-content: start;
+    justify-content: stretch;
+    padding-top: calc(max(var(--pad), env(safe-area-inset-top)) + 60px);
+    /* Largeur moins la barre d'évaluation ; hauteur moins le bouton de sortie, le commentaire et les flèches. */
+    --board: min(calc(100vw - 2 * var(--pad) - 18px), calc(100dvh - 2 * var(--pad) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 60px - 150px - var(--nav-btn)));
+  }
+
+  .moves-view.presenting .move-panel {
+    padding-top: 0;
+  }
+
+  .moves-view.presenting .move-nav {
+    position: static;
+  }
 }
