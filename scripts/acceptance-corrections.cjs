@@ -641,13 +641,81 @@ async function point9(browser, w, h, nav) {
   await ctx.close();
 }
 
+// ---------- Points 10 et 11 (P4) : ouverture dans les commentaires, coups essayés ----------
+
+const dbSnapshot = (page) =>
+  page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const req = indexedDB.open('sharp-eye');
+        req.onsuccess = () => {
+          const out = {};
+          const names = ['games', 'analyses', 'puzzles'];
+          const tx = req.result.transaction(names);
+          let left = names.length;
+          for (const n of names) {
+            const r = tx.objectStore(n).getAll();
+            r.onsuccess = () => {
+              out[n] = JSON.stringify(r.result);
+              if (--left === 0) resolve(out);
+            };
+          }
+        };
+      }),
+  );
+
+async function points1011(browser, w, h, nav) {
+  const tag = `${w}x${h}/${nav}`;
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+  await ctx.addInitScript((n) => localStorage.getItem('sharp-eye:settings') || localStorage.setItem('sharp-eye:settings', JSON.stringify({ navSize: n, graphSize: n })), nav);
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => ok(false, `${tag} erreur de page : ${e.message}`));
+  await openSample(page);
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(200);
+  const opening = (await page.getByTestId('detail-opening').textContent().catch(() => '')) ?? '';
+  ok(/Philidor.*\(C41\)/.test(opening), `${tag} P10 ouverture précise en tête du commentaire (« ${opening} »)`);
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  const before = await dbSnapshot(page);
+  const box = await page.locator('.board-zone .board').boundingBox();
+  const flipped = await page.evaluate(() => !!document.querySelector('.board-zone .board text') && false);
+  const tap = async (sq) => {
+    const f = 'abcdefgh'.indexOf(sq[0]);
+    const r = Number(sq[1]) - 1;
+    await page.mouse.click(box.x + ((f + 0.5) * box.width) / 8, box.y + ((7 - r + 0.5) * box.height) / 8);
+  };
+  ok((await page.locator('.explore-hint').count()) === 1, `${tag} P11 consigne « Touche une pièce pour essayer un autre coup »`);
+  // Après 1.e4 e5 : on essaie Dh5 puis Cc6.
+  await tap('d1');
+  await tap('h5');
+  await page.waitForFunction(() => /→/.test(document.querySelector('[data-testid="explore-box"] .detail-eval')?.textContent ?? ''), null, { timeout: 30000 });
+  const head = await page.locator('[data-testid="explore-box"] .detail-head').textContent();
+  ok(/Essai : Dh5 : \S/.test(head) && /→/.test(head), `${tag} P11 coup essayé classé et évalué (${head})`);
+  ok((await page.getByTestId('explore-pv').count()) === 1, `${tag} P11 suite du moteur affichée`);
+  ok(/Dans la partie : Cf3/.test(await page.getByTestId('explore-compare').textContent()), `${tag} P11 comparaison avec le coup de la partie`);
+  ok((await page.locator('.board-zone .board .badge, .board-zone .board [class*="badge"]').count()) >= 1, `${tag} P11 pastille de classement sur l’échiquier`);
+  await tap('b8');
+  await tap('c6');
+  await page.waitForFunction(() => /Cc6/.test(document.querySelector('[data-testid="explore-box"] .detail-head')?.textContent ?? '') && /→/.test(document.querySelector('[data-testid="explore-box"] .detail-eval')?.textContent ?? ''), null, { timeout: 30000 });
+  ok(true, `${tag} P11 deuxième coup essayé évalué`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p11-exploration-${tag.replace('/', '-')}.png` });
+  await page.getByRole('button', { name: 'Revenir à la partie' }).click();
+  ok((await page.locator('.move-detail').textContent()).includes('e5'), `${tag} P11 retour à la partie`);
+  await page.reload();
+  await page.waitForTimeout(500);
+  const after = await dbSnapshot(page);
+  ok(after.games === before.games && after.analyses === before.analyses && after.puzzles === before.puzzles, `${tag} P11 partie, analyse et puzzles intacts après l’exploration`);
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch();
-  for (const p of ['7', '8', '9'].filter((p) => POINTS.includes(p)))
+  for (const p of ['7', '8', '9', '10'].filter((p) => POINTS.includes(p)))
     for (const nav of NAVS)
       for (const sz of SIZES) {
         const [w, h] = sz.split('x').map(Number);
-        await { 7: point7, 8: point8, 9: point9 }[p](browser, w, h, nav);
+        await { 7: point7, 8: point8, 9: point9, 10: points1011 }[p](browser, w, h, nav);
       }
   if (POINTS.includes('3'))
     for (const sz of SIZES.slice(0, 1)) {

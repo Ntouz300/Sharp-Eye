@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { judgeTried } from '../src/features/review/explore';
 import { openingsByPly } from '../src/analysis/openings';
 import { importPgn } from '../src/pgn/parser';
 import { openingLine } from '../src/features/review/MoveDetail';
@@ -28,5 +29,19 @@ describe('ouverture précise dans les commentaires', () => {
   it('la narration dit la variante quand elle change', () => {
     const g = game('1. e4 c6 2. Bc4');
     expect(narrationText(g.moves[2], undefined, true, 'Caro-Kann : attaque Hillbilly')).toBe('Caro-Kann, attaque Hillbilly. Fou c4.');
+  });
+});
+
+describe('coups essayés en exploration', () => {
+  const ev = (score: { cp?: number; mate?: number }, pv: string[], second?: { cp?: number }) => ({
+    fen: '',
+    depth: 14,
+    lines: [{ multipv: 1, depth: 14, score, pv }, ...(second ? [{ multipv: 2, depth: 14, score: second, pv: ['a2a3'] }] : [])],
+  });
+  const start = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
+  it('classe un coup essayé comme un coup de la partie', () => {
+    expect(judgeTried(start, 'g1f3', ev({ cp: 30 }, ['g1f3'], { cp: 25 }), ev({ cp: 30 }, ['b8c6']))).toBe('best');
+    expect(judgeTried(start, 'd1h5', ev({ cp: 30 }, ['g1f3'], { cp: 25 }), ev({ cp: -350 }, ['g8f6']))).toBe('blunder');
+    expect(judgeTried(start, 'a2a3', ev({ cp: 30 }, ['g1f3'], { cp: 25 }), ev({ cp: 0 }, ['g8f6']))).toBe('good');
   });
 });

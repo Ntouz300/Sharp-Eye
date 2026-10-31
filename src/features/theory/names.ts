@@ -59,7 +59,12 @@ const WORDS: [RegExp, string][] = [
 
 export function frenchName(name: string): string {
   const fam: [RegExp, string] | undefined = FAMILIES.find(([re]) => re.test(name)) ?? (name.includes(':') ? ([/./, name.slice(0, name.indexOf(':'))] as [RegExp, string]) : undefined);
-  if (!fam) return name;
+  if (!fam) {
+    // Famille sans traduction : « Philidor Defense » → « Défense Philidor ».
+    const suffix = SUFFIXES.find(([re]) => re.test(name));
+    const out = suffix ? name.replace(suffix[0], suffix[1]) : name;
+    return out.charAt(0).toUpperCase() + out.slice(1);
+  }
   const sep = name.includes(':') ? name.indexOf(':') : fam[0].test(name) && name.includes(', ') ? name.indexOf(',') : -1;
   const rest = sep >= 0 ? name.slice(sep + 1).trim() : '';
   const sub = rest

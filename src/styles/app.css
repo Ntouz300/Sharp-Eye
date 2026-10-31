@@ -3126,3 +3126,15 @@ body.presenting .tabbar {
   color: var(--accent);
   font-size: var(--fs-s);
 }
+
+.tried-moves > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+.explore-hint {
+  margin-top: 8px;
+}

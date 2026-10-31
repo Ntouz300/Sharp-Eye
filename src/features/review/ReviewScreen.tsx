@@ -20,6 +20,8 @@ import { useSettings } from '../settings/settings';
 import { EvalBar } from './EvalBar';
 import { EvalGraph } from './EvalGraph';
 import { MoveDetail, openingLine } from './MoveDetail';
+import { ExploreBox } from './ExploreBox';
+import { judgeTried, useExploreEvals } from './explore';
 import { openingsByPly } from '../../analysis/openings';
 import { frenchName } from '../theory/names';
 import { narrationText } from './narration';
@@ -307,7 +309,9 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
   const gameFen = ply > 0 ? game.moves[ply - 1].fenAfter : game.startFen;
   const fen = explore.length ? explore[explore.length - 1].fen : gameFen;
   const wantLines = deep === 'engine' || shownBest > 0;
-  const live = useLiveEngine(explore.length || wantLines ? fen : null, 18, explore.length && !wantLines ? 1 : Math.max(multiPv, shownBest));
+  const live = useLiveEngine(wantLines ? fen : null, 18, Math.max(multiPv, shownBest));
+  // Coups essayés : chaque position est évaluée et chaque coup classé, en mémoire seulement.
+  const exploreEvals = useExploreEvals(explore.length ? [gameFen, ...explore.map((m) => m.fen)] : []);
 
   const onSquareTap = (sq: string) => {
     const chess = new Chess(fen);
@@ -358,7 +362,14 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
   const playedMove = move ? { from: move.uci.slice(0, 2), to: move.uci.slice(2, 4) } : undefined;
   const lastMove = lastExplore ? { from: lastExplore.uci.slice(0, 2), to: lastExplore.uci.slice(2, 4) } : playedMove;
   const targets = selected ? new Chess(fen).moves({ square: selected as Square, verbose: true }).map((m) => m.to) : [];
-  const liveScore = live.result?.lines[0]?.score;
+  const triedLabels = explore.map((m, i) => {
+    const fb = i ? explore[i - 1].fen : gameFen;
+    const b = exploreEvals[fb];
+    const a = exploreEvals[m.fen];
+    return b && a ? judgeTried(fb, m.uci, b, a) : undefined;
+  });
+  const triedLabel = triedLabels[triedLabels.length - 1];
+  const liveScore = exploring ? exploreEvals[fen]?.lines[0]?.score : live.result?.lines[0]?.score;
   const winWhite = exploring ? (liveScore ? winWhite_(liveScore) : null) : (analysis?.winsWhite[ply] ?? null);
   const score = exploring ? liveScore : analysis?.scores[ply];
   const h = game.headers;
@@ -380,7 +391,7 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
               flipped={flipped}
               lastMove={lastMove}
               arrows={arrows}
-              badge={!exploring && moveAnalysis && lastMove ? { square: lastMove.to, label: moveAnalysis.label } : undefined}
+              badge={exploring ? (triedLabel && lastMove ? { square: lastMove.to, label: triedLabel } : undefined) : moveAnalysis && lastMove ? { square: lastMove.to, label: moveAnalysis.label } : undefined}
               animateFrom={animations && (anim.current.forward || exploring) && lastMove ? lastMove.from : undefined}
               coordinates={coordinates}
               onSwipe={(d) => (exploring ? (d < 0 ? setExplore(explore.slice(0, -1)) : undefined) : step(d))}
@@ -402,26 +413,22 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
         {error && <p className="notice warn">{error}</p>}
         <div className="move-card">
           {exploring ? (
-            <div className="explore-box" aria-live="polite">
-              <div className="detail-head">
-                <strong>Exploration</strong>
-                <span className="detail-eval">{live.loading ? 'calcul…' : liveScore ? formatScore(liveScore) : ''}</span>
-              </div>
-              <p className="detail-text">
-                {move ? `Après ${move.moveNumber}${move.color === 'w' ? '.' : '...'} ${displaySan(move.san, notation)} : ` : 'Depuis le départ : '}
-                <strong>{explore.map((m) => displaySan(m.san, notation)).join(' ')}</strong>
-              </p>
-              <div className="explore-actions">
-                <button type="button" className="ghost" onClick={() => setExplore(explore.slice(0, -1))}>
-                  Annuler le coup
-                </button>
-                <button type="button" className="primary" onClick={() => setExplore([])}>
-                  Revenir à la partie
-                </button>
-              </div>
-            </div>
+            <ExploreBox
+              start={gameFen}
+              moves={explore}
+              evals={exploreEvals}
+              labels={triedLabels}
+              gameMove={game.moves[ply]}
+              gameAnalysis={analysis?.moves[ply]}
+              after={move ? `${move.moveNumber}${move.color === 'w' ? '.' : '...'} ${displaySan(move.san, notation)}` : undefined}
+              onUndo={() => setExplore(explore.slice(0, -1))}
+              onBack={() => setExplore([])}
+            />
           ) : (
             <MoveDetail move={move} analysis={moveAnalysis} opening={openingLine(openings[ply - 1], moveAnalysis?.label, ply > 1 && analysis?.moves[ply - 2]?.label === 'book' && moveAnalysis?.label !== 'book')} />
+          )}
+          {!exploring && analysis && (
+            <p className="explore-hint muted small">Touche une pièce pour essayer un autre coup : il sera évalué, sans changer ta partie.</p>
           )}
         </div>
         <button type="button" className="deep-btn" onClick={() => setDeep('engine')}>
