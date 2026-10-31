@@ -62,7 +62,8 @@ export interface StoredPuzzle {
   solution: string[];
   /** Coup réellement joué (UCI). */
   played: string;
-  label: 'mistake' | 'blunder' | 'miss';
+  /** Étiquette du coup joué ; « bank » pour un défi de la banque intégrée. */
+  label: 'mistake' | 'blunder' | 'miss' | 'bank';
   theme: string;
   explanation?: string;
   rating: number;
@@ -73,6 +74,14 @@ export interface StoredPuzzle {
   attempts: number;
   successes: number;
   createdAt: number;
+  /** Format des défis en plusieurs coups (2). Absent sur les anciens puzzles, convertis à l'ouverture. */
+  version?: number;
+  /** Combinaison complète (UCI), terminée par un coup du joueur. */
+  line?: string[];
+  goal?: 'mate' | 'material' | 'decisive';
+  gain?: number;
+  /** Premier coup non unique : gardé pour l'historique, mais plus proposé. */
+  ambiguous?: boolean;
 }
 
 export interface KeyValue {

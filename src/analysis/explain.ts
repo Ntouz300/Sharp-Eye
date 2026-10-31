@@ -381,3 +381,19 @@ function computeExplanation(input: ExplainInput): Explanation | null {
 }
 
 export const PIECE_NAMES_FR = NAME;
+
+/**
+ * Pourquoi un coup échoue, en une phrase courte, à partir de la meilleure réponse adverse :
+ * « Tu laisses le fou en c4 en prise. », « Tu permets un mat en 2. », ou l'ampleur en mots simples.
+ */
+export function whyItFails(fenBefore: string, uci: string, replyPv: string[], scoreAfter: Score, scoreBefore: Score): string {
+  const color = new Chess(fenBefore).turn();
+  const input: ExplainInput = { label: 'mistake', fenBefore, playedUci: uci, bestPv: [], bestScore: scoreBefore, replyPv, scoreAfter };
+  const reply = replyPv[0];
+  const after = play(fenBefore, uci);
+  if (after && reply) {
+    const r = play(after.fen(), reply);
+    if (r?.isCheckmate()) return 'L’adversaire fait échec et mat.';
+  }
+  return concession(input, color) ?? swingWords(input, color);
+}

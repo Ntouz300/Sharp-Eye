@@ -2707,3 +2707,252 @@ body.presenting .tabbar {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Entraînement : accueil et défis en plusieurs coups ---------- */
+
+.training-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (min-width: 1000px) and (orientation: landscape) {
+  .training-home {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'today progress' 'themes themes' 'games games';
+  }
+
+  .home-today {
+    grid-area: today;
+  }
+
+  .home-progress {
+    grid-area: progress;
+  }
+
+  .home-themes {
+    grid-area: themes;
+  }
+
+  .home-games {
+    grid-area: games;
+  }
+}
+
+.home-card h2 + .muted {
+  margin-top: -8px;
+}
+
+.today-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mini-stats > div {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.theme-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  gap: 8px;
+}
+
+.theme-tile {
+  min-height: 64px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 120ms var(--ease), background-color 150ms var(--ease);
+}
+
+.theme-tile:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.theme-tile:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.session-title {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.challenge {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.challenge-layout {
+  display: grid;
+  grid-template-columns: minmax(0, min(calc(100dvh - 220px), 620px)) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.challenge-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.challenge-head .narr-btn {
+  margin-left: auto;
+}
+
+.narr-btn.on {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.step-dots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+}
+
+.step-dots li {
+  width: 28px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.step-dots li.now {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.step-dots li.ok {
+  background: var(--accent);
+}
+
+.step-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-notes li {
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+}
+
+.step-notes .note-good::before {
+  content: '✓ ';
+  font-weight: 700;
+}
+
+.step-notes .note-alt::before {
+  content: '≈ ';
+  font-weight: 700;
+}
+
+.step-notes .note-wrong {
+  background: rgba(194, 58, 54, 0.12);
+}
+
+.step-notes .note-wrong::before {
+  content: '✗ ';
+  font-weight: 700;
+}
+
+.hint-text {
+  font-weight: 600;
+}
+
+.why-best {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+
+.line-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 4px solid var(--surface-2);
+}
+
+.line-card.good {
+  border-top-color: var(--accent);
+}
+
+.line-card.bad {
+  border-top-color: #c23a36;
+}
+
+.line-board .board {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.line-moves .now {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.line-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 999px), (orientation: portrait) {
+  .challenge-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .challenge-layout .puzzle-board {
+    max-width: min(100%, calc(100dvh - 300px));
+    width: 100%;
+    margin: 0 auto;
+  }
+}

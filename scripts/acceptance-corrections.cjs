@@ -7,6 +7,7 @@ const SIZES = (process.env.SIZES || '1180x820,820x1180,390x844').split(',');
 const NAVS = (process.env.NAV || 'normal,xl').split(',');
 const SHOTS = process.env.SHOTS;
 const POINTS = (process.env.POINTS || '1,2,3').split(',');
+const { Chess } = require('chess.js');
 const fail = [];
 const ok = (c, m) => {
   console.log((c ? 'OK    ' : 'ÉCHEC ') + m);
@@ -299,8 +300,242 @@ async function points456(browser, w, h, nav) {
   await ctx.close();
 }
 
+
+// ---------- Points 7 et 8 : entraînement et défis ----------
+
+const words = (t) => t.trim().split(/\s+/).filter(Boolean).length;
+
+/** Ancien puzzle (format à un coup) d'une partie, déjà tenté : sert au thème faible et à la migration. */
+async function seedOldPuzzle(page) {
+  await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const req = indexedDB.open('sharp-eye');
+        req.onsuccess = () => {
+          const tx = req.result.transaction('puzzles', 'readwrite');
+          tx.objectStore('puzzles').put({
+            id: 'g-old|4', gameId: 'g-old', moveIndex: 4, fen: 'r3k3/8/8/3N4/8/8/PP6/4K3 w - - 0 1',
+            solution: ['d5c7', 'e8d7', 'c7a8', 'd7c8'], played: 'e1d2', label: 'blunder', theme: 'Fourchettes',
+            rating: 1100, due: 0, stage: 1, attempts: 4, successes: 1, createdAt: 1,
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+        req.onerror = () => reject(req.error);
+      }),
+  );
+}
+
+const readPuzzle = (page, id) =>
+  page.evaluate(
+    (id) =>
+      new Promise((resolve) => {
+        const req = indexedDB.open('sharp-eye');
+        req.onsuccess = () => {
+          const g = req.result.transaction('puzzles').objectStore('puzzles').get(id);
+          g.onsuccess = () => resolve(g.result);
+        };
+      }),
+    id,
+  );
+
+async function leaveReview(page) {
+  for (let i = 0; i < 3 && (await page.getByRole('button', { name: 'Progrès', exact: true }).count()) === 0; i++) {
+    await page.locator('.back-btn').first().click();
+    await page.waitForTimeout(200);
+  }
+}
+
+const overflowX = (page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+
+async function point7(browser, w, h, nav) {
+  const tag = `${w}x${h}/${nav}`;
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+  await ctx.addInitScript((n) => localStorage.getItem('sharp-eye:settings') || localStorage.setItem('sharp-eye:settings', JSON.stringify({ navSize: n, graphSize: n })), nav);
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => ok(false, `${tag} erreur de page : ${e.message}`));
+  await page.goto(URL);
+  await page.getByRole('button', { name: 'Entraînement', exact: true }).click();
+  await page.waitForSelector('[data-testid="themes"] .theme-tile');
+  const home = await page.evaluate(() =>
+    ['today', 'themes', 'games', 'progress'].map((id) => {
+      const s = document.querySelector(`[data-testid="${id}"]`);
+      const r = s?.getBoundingClientRect();
+      return { id, title: s?.querySelector('h2')?.textContent ?? '', line: s?.querySelector('h2 + p')?.textContent ?? '', left: r?.left, top: r?.top, right: r?.right };
+    }),
+  );
+  ok(home.every((s) => s.title && words(s.title) <= 3 && s.line), `${tag} P7 quatre sections, titres ≤ 3 mots et une ligne d’explication (${home.map((s) => s.title).join(' / ')})`);
+  ok((await page.locator('.theme-tile').count()) >= 4, `${tag} P7 tuiles de thèmes sans partie analysée`);
+  ok((await page.getByRole('button', { name: 'Analyser une partie' }).count()) === 1, `${tag} P7 bouton « Analyser une partie » sans partie analysée`);
+  const today = home[0], prog = home[3];
+  const wide = w >= 1000 && w > h;
+  ok(wide ? Math.abs(today.top - prog.top) < 2 && prog.left > today.right - 1 : Math.abs(today.left - prog.left) < 2, `${tag} P7 ${wide ? '2 colonnes' : '1 colonne'}`);
+  ok((await overflowX(page)) <= 0, `${tag} P7 pas de défilement horizontal`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p7-accueil-${tag.replace('/', '-')}.png`, fullPage: true });
+
+  // 2 touches au plus : depuis Parties, Entraînement puis une tuile.
+  await page.getByRole('button', { name: 'Parties', exact: true }).click();
+  await page.getByRole('button', { name: 'Entraînement', exact: true }).click();
+  await page.locator('.theme-tile').first().click();
+  ok(await page.locator('[data-testid="challenge"]').isVisible(), `${tag} P7 un défi par thème démarre en 2 touches`);
+  await page.getByRole('button', { name: '← Entraînement' }).click();
+  await page.getByRole('button', { name: 'Commencer' }).click();
+  ok((await page.locator('[data-testid="challenge"] .chip', { hasText: 'Défi du jour' }).count()) === 1, `${tag} P7 « Commencer » ouvre le défi du jour`);
+  await page.getByRole('button', { name: '← Entraînement' }).click();
+
+  // Ancien puzzle : converti sans perte, et lien du thème faible depuis Progrès.
+  await seedOldPuzzle(page);
+  await page.reload();
+  await page.getByRole('button', { name: 'Entraînement', exact: true }).click();
+  await page.waitForSelector('[data-testid="themes"] .theme-tile');
+  await page.waitForTimeout(300);
+  const migrated = await readPuzzle(page, 'g-old|4');
+  ok(migrated?.version === 2 && migrated.attempts === 4 && migrated.successes === 1 && migrated.stage === 1 && migrated.line?.length === 3, `${tag} P7 ancien puzzle converti, historique gardé`);
+  ok((await page.getByRole('button', { name: /Thème faible : Fourchettes/ }).count()) === 1, `${tag} P7 thème faible affiché`);
+  // Une partie analysée (pseudo de Morphy) : Progrès affiche ses faiblesses, « Sur mes parties » ses exercices.
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('sharp-eye:settings') || '{}');
+    localStorage.setItem('sharp-eye:settings', JSON.stringify({ ...st, usernames: ['Paul Morphy'] }));
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Importer' }).first().click();
+  await page.getByRole('button', { name: /Partie d’exemple/ }).click();
+  await page.waitForSelector('.overview', { timeout: 180000 });
+  await leaveReview(page);
+  await page.getByRole('button', { name: 'Entraînement', exact: true }).click();
+  await page.locator('.theme-tile', { hasText: 'Devine le coup' }).click();
+  await page.waitForTimeout(300);
+  ok((await page.getByText(/que joues-tu/).count()) === 1, `${tag} P7 « Devine le coup » sur la dernière partie en 2 touches`);
+  await leaveReview(page);
+  await page.getByRole('button', { name: 'Progrès', exact: true }).click();
+  await page.waitForSelector('.weak-list li', { timeout: 10000 }).catch(() => {});
+  const link = page.locator('.weak-list li', { hasText: 'Fourchettes' }).getByRole('button');
+  if ((await link.count()) === 1) {
+    await link.click();
+    await page.waitForSelector('[data-testid="challenge"]', { timeout: 5000 }).catch(() => {});
+    ok((await page.locator('.session-title').textContent().catch(() => '')) === 'Fourchettes', `${tag} P7 le thème faible de Progrès ouvre ses défis`);
+  } else ok(false, `${tag} P7 lien du thème faible dans Progrès`);
+  await ctx.close();
+}
+
+/** Touche une case de l'échiquier du défi. */
+async function tapSquare(page, sq, flipped) {
+  const box = await page.locator('.challenge-layout .board').boundingBox();
+  const f = 'abcdefgh'.indexOf(sq[0]);
+  const r = Number(sq[1]) - 1;
+  const x = flipped ? 7 - f : f;
+  const y = flipped ? r : 7 - r;
+  await page.mouse.click(box.x + ((x + 0.5) * box.width) / 8, box.y + ((y + 0.5) * box.height) / 8);
+}
+
+async function playUci(page, uci, flipped) {
+  await tapSquare(page, uci.slice(0, 2), flipped);
+  await tapSquare(page, uci.slice(2, 4), flipped);
+}
+
+const challengeState = (page) =>
+  page.locator('[data-testid="challenge"]').evaluate((el) => ({ fen: el.dataset.fen, line: el.dataset.line.split(' '), step: Number(el.dataset.step), phase: el.dataset.phase }));
+
+async function waitPhase(page, phases, timeout = 30000) {
+  await page.waitForFunction((ps) => ps.includes(document.querySelector('[data-testid="challenge"]')?.dataset.phase), phases, { timeout });
+}
+
+/** Résout le défi affiché ; `wrongFirst` joue d'abord un coup perdant. */
+async function solve(page, tag, { wrongFirst = false, hints = 0 } = {}) {
+  await waitPhase(page, ['play']);
+  let st = await challengeState(page);
+  const flipped = st.fen.split(' ')[1] === 'b';
+  if (wrongFirst) {
+    const c = new Chess(st.fen);
+    const bad = c.moves({ verbose: true }).map((m) => m.from + m.to + (m.promotion ? 'q' : '')).find((u) => u.slice(0, 4) !== st.line[0].slice(0, 4) && !/[+#]/.test(new Chess(st.fen).move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }).san));
+    await playUci(page, bad, flipped);
+    await waitPhase(page, ['refuted', 'play', 'done']);
+    const after = await challengeState(page);
+    if (after.phase === 'refuted') {
+      const reason = await page.locator('.note-wrong').last().textContent();
+      ok(words(reason) <= 15, `${tag} P8 erreur expliquée en une phrase ≤ 15 mots (« ${reason} »)`);
+      ok((await page.locator('.challenge-layout .board .arrow').count()) >= 1, `${tag} P8 réfutation jouée avec une flèche`);
+      if (SHOTS) await page.screenshot({ path: `${SHOTS}/p8-refutation-${tag.replace('/', '-')}.png` });
+      await page.getByRole('button', { name: 'Réessayer' }).click();
+      await waitPhase(page, ['play']);
+      ok((await challengeState(page)).step === 0, `${tag} P8 « Réessayer » revient à la position du défi`);
+    } else ok(false, `${tag} P8 coup perdant ${bad} accepté à tort`);
+  }
+  for (let i = 0; i < hints; i++) await page.getByRole('button', { name: /^Indice/ }).click();
+  if (hints) ok((await page.locator('.hint-text').textContent()).startsWith(`Indice ${hints}/3`), `${tag} P8 indice ${hints}/3 affiché`);
+  st = await challengeState(page);
+  let goodNotes = 0;
+  while (st.phase !== 'done') {
+    await playUci(page, st.line[st.step], flipped);
+    await waitPhase(page, ['play', 'done']);
+    goodNotes++;
+    st = await challengeState(page);
+  }
+  const notes = await page.locator('.note-good, .note-alt').allTextContents();
+  ok(notes.length === goodNotes && notes.every((n) => n.length > 2 && words(n) <= 15), `${tag} P8 une phrase courte après chaque bon coup (${notes.join(' | ')})`);
+  return st;
+}
+
+async function point8(browser, w, h, nav) {
+  const tag = `${w}x${h}/${nav}`;
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+  await ctx.addInitScript(fakeSpeech, 50);
+  await ctx.addInitScript((n) => localStorage.getItem('sharp-eye:settings') || localStorage.setItem('sharp-eye:settings', JSON.stringify({ navSize: n, graphSize: n, narration: true })), nav);
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => ok(false, `${tag} erreur de page : ${e.message}`));
+  await page.goto(URL);
+  await page.getByRole('button', { name: 'Entraînement', exact: true }).click();
+  const levelText = async () => (await page.locator('.training-screen .screen-head .muted').textContent()) ?? '';
+  await page.waitForSelector('.theme-tile');
+  const level0 = await levelText();
+  await page.locator('.theme-tile', { hasText: 'Pièces en prise' }).click();
+  await waitPhase(page, ['play']);
+  const instr = (await page.getByTestId('instruction').textContent()).trim();
+  ok(/^Les (blancs|noirs) jouent et (matent|gagnent .+|prennent un avantage décisif) en [2-5] coups\.$/.test(instr), `${tag} P8 consigne « ${instr} »`);
+  const st0 = await challengeState(page);
+  const n = Math.ceil(st0.line.length / 2);
+  ok(n >= 2 && n <= 5, `${tag} P8 combinaison de ${n} coups du joueur`);
+  const spoken = await page.evaluate(() => window.__spoken);
+  ok(spoken.some((s) => s === instr), `${tag} P8 la narration lit la consigne`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p8-defi-${tag.replace('/', '-')}.png` });
+
+  await solve(page, tag, { wrongFirst: true, hints: 2 });
+  const result = await page.getByTestId('challenge-result').textContent();
+  ok(/après une erreur/.test(result), `${tag} P8 réussite après une erreur notée comme ratée (${result})`);
+  await page.waitForSelector('[data-testid="line-card"]:nth-child(2)', { timeout: 30000 });
+  const cards = await page.locator('[data-testid="line-card"]').evaluateAll((els) =>
+    els.map((e) => ({ title: e.querySelector('h3').textContent, phrase: e.querySelector('h3 + p').textContent, arrows: e.querySelectorAll('.arrow').length })),
+  );
+  ok(cards.length >= 2 && cards.every((c) => c.phrase && c.phrase.split(/\s+/).length <= 15 && c.arrows >= 1), `${tag} P8 « Pourquoi c’est le meilleur » : ${cards.length} lignes avec flèche et phrase (${cards.map((c) => `${c.title} : ${c.phrase}`).join(' | ')})`);
+  const card = page.locator('[data-testid="line-card"]').nth(1);
+  await card.getByRole('button', { name: 'Coup suivant' }).click();
+  ok((await card.locator('.line-nav .muted').textContent()).startsWith('1/'), `${tag} P8 ligne rejouable pas à pas`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p8-pourquoi-${tag.replace('/', '-')}.png`, fullPage: true });
+  ok((await overflowX(page)) <= 0, `${tag} P8 pas de défilement horizontal`);
+
+  if (w === 1180) {
+    // Trois réussites de suite font monter le niveau.
+    for (let i = 0; i < 3; i++) {
+      await page.getByRole('button', { name: /Défi suivant|Terminer/ }).click();
+      await solve(page, tag);
+      const r = await page.getByTestId('challenge-result').textContent();
+      if (i === 0) ok(/Réussi · 3 points sur 3/.test(r), `${tag} P8 réussite sans aide : 3 points (${r})`);
+    }
+    await page.getByRole('button', { name: '← Entraînement' }).click();
+    const level1 = await levelText();
+    ok(level0 !== level1 && Number(level1.replace(/\D/g, '')) === Number(level0.replace(/\D/g, '')) + 150, `${tag} P8 niveau adaptatif : ${level0} → ${level1}`);
+  }
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch();
+  for (const p of ['7', '8'].filter((p) => POINTS.includes(p)))
+    for (const nav of NAVS)
+      for (const sz of SIZES) {
+        const [w, h] = sz.split('x').map(Number);
+        await (p === '7' ? point7 : point8)(browser, w, h, nav);
+      }
   if (POINTS.includes('3'))
     for (const sz of SIZES.slice(0, 1)) {
       const [w, h] = sz.split('x').map(Number);
