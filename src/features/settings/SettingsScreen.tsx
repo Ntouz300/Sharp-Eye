@@ -3,7 +3,7 @@ import { REVIEW_LEVELS, type ReviewLevel } from '../../analysis/config';
 import { exportBackup, importBackup } from '../../storage/backup';
 import { shareOrDownload } from '../../ui/share';
 import { THEMES } from '../../themes/themes';
-import { applyTheme, useSettings, type Notation } from './settings';
+import { applyTheme, SIZES, useSettings, type Notation, type Size } from './settings';
 
 export function SettingsScreen() {
   const s = useSettings();
@@ -76,6 +76,8 @@ export function SettingsScreen() {
             </label>
           ))}
         </fieldset>
+        <SizeRow legend="Taille des flèches de navigation" name="navSize" value={s.navSize} onChange={(v) => s.set({ navSize: v })} />
+        <SizeRow legend="Taille du graphique d’évaluation" name="graphSize" value={s.graphSize} onChange={(v) => s.set({ graphSize: v })} />
         <label className="toggle">
           <input type="checkbox" checked={s.coordinates} onChange={(e) => s.set({ coordinates: e.target.checked })} />
           Afficher les coordonnées
@@ -134,6 +136,20 @@ export function SettingsScreen() {
         {backupMsg && <p className="small" role="status">{backupMsg}</p>}
       </section>
     </div>
+  );
+}
+
+function SizeRow({ legend, name, value, onChange }: { legend: string; name: string; value: Size; onChange: (v: Size) => void }) {
+  return (
+    <fieldset className="radio-row">
+      <legend>{legend}</legend>
+      {SIZES.map((z) => (
+        <label key={z.id} className={`chip ${value === z.id ? 'active' : ''}`}>
+          <input type="radio" name={name} checked={value === z.id} onChange={() => onChange(z.id)} />
+          {z.label}
+        </label>
+      ))}
+    </fieldset>
   );
 }
 

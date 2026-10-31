@@ -3,6 +3,13 @@ import type { ReviewLevel } from '../../analysis/config';
 import { DEFAULT_THEME, THEMES } from '../../themes/themes';
 
 export type Notation = 'fr' | 'en' | 'figurine';
+export type Size = 'normal' | 'large' | 'xl';
+
+export const SIZES: { id: Size; label: string }[] = [
+  { id: 'normal', label: 'Normale' },
+  { id: 'large', label: 'Grande' },
+  { id: 'xl', label: 'Très grande' },
+];
 
 export interface Settings {
   theme: string;
@@ -20,10 +27,14 @@ export interface Settings {
   playSpeed: number;
   /** Niveau retenu pour l'analyse groupée. */
   batchLevel: ReviewLevel;
+  /** Taille des boutons de navigation dans la revue (flèches, lecture, erreur suivante). */
+  navSize: Size;
+  /** Hauteur du graphique d'évaluation sous l'échiquier. */
+  graphSize: Size;
 }
 
 const KEY = 'sharp-eye:settings';
-const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [], narration: false, board3d: false, playSpeed: 1.2, batchLevel: 'standard' };
+const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [], narration: false, board3d: false, playSpeed: 1.2, batchLevel: 'standard', navSize: 'normal', graphSize: 'normal' };
 
 function load(): Settings {
   try {

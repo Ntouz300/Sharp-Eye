@@ -75,3 +75,8 @@ Choix faits là où le cahier des charges laissait une marge, ou s'en écarte, a
 - **Analyse** : ouvrir une partie lance son analyse, la quitter la met en pause (l'analyse en lot aussi, puis elle reprend), la rouvrir repart du cache. « Analyser toutes les parties » propose 3 niveaux avec une durée estimée d'après la vitesse mesurée sur l'appareil.
 - **Transparence** : chaque coup affiche profondeur, temps de calcul et nombre de lignes. « Analyser ce coup plus profondément » relance la position avant et après le coup à profondeur 24 avec 2 lignes au moins.
 - **Vérifications** : `scripts/acceptance-p0.cjs` (plateau ≥ 60 % de la largeur à 1180×820, contrôles, moments clés, reprise du cache, onglets, aide à 2 touches) ; aucun défilement horizontal à 1180×820, 820×1180 et 375×812.
+
+## Retours après P0
+
+- **Tailles réglables** : Réglages → Revue propose « Taille des flèches de navigation » et « Taille du graphique d’évaluation » (Normale, Grande, Très grande : boutons de 44, 60 ou 76 px, graphique de 36, 72 ou 120 px). L’échiquier rétrécit d’autant : en paysage 1180×820 avec le graphique très grand, il occupe 53 % de la largeur au lieu de 60 %, un choix assumé par l’utilisateur.
+- **Analyser les N dernières parties** : la feuille d’analyse groupée propose 10, 50, 100, 200, 300 dernières, toutes, ou un nombre exact. Les N parties les plus récentes de la liste (filtres appliqués) sont retenues, celles déjà analysées sont ignorées et comptées à part. La durée estimée est affichée pour chaque niveau et sur le bouton de lancement.

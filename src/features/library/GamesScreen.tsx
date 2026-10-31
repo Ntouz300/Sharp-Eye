@@ -70,8 +70,9 @@ export function GamesScreen() {
   }, [games, query, filters, me]);
 
   const activeFilters = Object.entries(filters).filter(([, v]) => v !== 'all').length;
-  const pending = filtered.filter((g) => g.analyzedLevel === undefined && !g.unanalyzable);
-  const batchTargets = selecting && selected.size ? filtered.filter((g) => selected.has(g.id) && g.analyzedLevel === undefined && !g.unanalyzable) : pending;
+  const bySelection = selecting && selected.size > 0;
+  const batchScope = bySelection ? filtered.filter((g) => selected.has(g.id)) : filtered;
+  const batchTargets = batchScope.filter(needsAnalysis);
 
   if (editor)
     return (
@@ -130,7 +131,7 @@ export function GamesScreen() {
           </label>
           {batchTargets.length > 0 && !useBatch.getState().queue.length && (
             <button type="button" className="ghost" onClick={() => setSheet('batch')}>
-              {selecting && selected.size ? `Analyser la sélection (${batchTargets.length})` : `Analyser toutes les parties (${batchTargets.length})`}
+              {selecting && selected.size ? `Analyser la sélection (${batchTargets.length})` : `Analyser des parties (${batchTargets.length} non analysées)`}
             </button>
           )}
         </div>
@@ -202,14 +203,12 @@ export function GamesScreen() {
       {sheet === 'filters' && <FiltersSheet value={filters} onChange={setFilters} onClose={() => setSheet(null)} />}
       {sheet === 'batch' && (
         <BatchSheet
-          games={batchTargets}
+          scope={batchScope}
+          bySelection={bySelection}
           onClose={() => setSheet(null)}
-          onStart={(level) => {
+          onStart={(ids, level) => {
             // Les plus récentes d'abord (ordre de la liste).
-            useBatch.getState().start(
-              batchTargets.map((g) => g.id),
-              level,
-            );
+            useBatch.getState().start(ids, level);
             setSheet(null);
             setSelecting(false);
           }}
@@ -302,10 +301,54 @@ function BatchBanner() {
   );
 }
 
-function BatchSheet({ games, onStart, onClose }: { games: StoredGame[]; onStart: (l: ReviewLevel) => void; onClose: () => void }) {
+const needsAnalysis = (g: StoredGame) => g.analyzedLevel === undefined && !g.unanalyzable;
+const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+const COUNT_PRESETS = [10, 50, 100, 200, 300];
+
+/** Analyse groupée : les N parties les plus récentes de la liste (ou la sélection), au niveau choisi. */
+function BatchSheet({ scope, bySelection, onStart, onClose }: { scope: StoredGame[]; bySelection: boolean; onStart: (ids: string[], l: ReviewLevel) => void; onClose: () => void }) {
   const [level, setLevel] = useState<ReviewLevel>(useSettings.getState().batchLevel);
+  const [count, setCount] = useState<number | null>(null);
+  const recent = bySelection || count === null ? scope : scope.slice(0, count);
+  const games = recent.filter(needsAnalysis);
+  const presets = COUNT_PRESETS.filter((n) => n < scope.length);
   return (
-    <Sheet title={`Analyser ${games.length} partie${games.length > 1 ? 's' : ''}`} onClose={onClose} side="bottom">
+    <Sheet title="Analyser des parties" onClose={onClose} side="bottom">
+      {!bySelection && (
+        <fieldset className="filter-group">
+          <legend>Combien de parties récentes ?</legend>
+          <div className="chips-row">
+            {presets.map((n) => (
+              <button type="button" key={n} className={`chip ${count === n ? 'active' : ''}`} aria-pressed={count === n} onClick={() => setCount(n)}>
+                {n} dernières
+              </button>
+            ))}
+            <button type="button" className={`chip ${count === null ? 'active' : ''}`} aria-pressed={count === null} onClick={() => setCount(null)}>
+              Toutes ({scope.length})
+            </button>
+          </div>
+          <label className="count-input">
+            Nombre exact
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={scope.length}
+              value={count ?? scope.length}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value));
+                if (n >= 1) setCount(n >= scope.length ? null : n);
+              }}
+            />
+          </label>
+        </fieldset>
+      )}
+      <p className="batch-scope" data-testid="batch-scope">
+        {bySelection ? `Sélection : ${plural(recent.length, 'partie')}` : count === null ? `Toutes les parties : ${scope.length}` : `Les ${recent.length} dernières parties`}
+        {' · '}
+        <strong>{games.length ? `${plural(games.length, 'partie')} à analyser` : 'toutes déjà analysées'}</strong>
+        {recent.length > games.length && games.length > 0 && <span className="muted"> ({recent.length - games.length} déjà analysées, ignorées)</span>}
+      </p>
       <p className="muted small">Une partie à la fois, les plus récentes d’abord. Tu peux continuer à utiliser l’app ; ouvrir une partie l’analyse en priorité.</p>
       <div className="level-list" role="radiogroup" aria-label="Niveau d’analyse">
         {LEVELS.map((l) => (
@@ -317,8 +360,8 @@ function BatchSheet({ games, onStart, onClose }: { games: StoredGame[]; onStart:
           </button>
         ))}
       </div>
-      <button type="button" className="primary big" onClick={() => onStart(level)}>
-        Lancer l’analyse
+      <button type="button" className="primary big" disabled={!games.length} onClick={() => onStart(games.map((g) => g.id), level)}>
+        {games.length ? `Lancer l’analyse · ${formatDuration(estimateMs(games, level))}` : 'Rien à analyser'}
       </button>
     </Sheet>
   );

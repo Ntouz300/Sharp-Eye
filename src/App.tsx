@@ -24,12 +24,18 @@ export function App() {
   const puzzleTheme = useReview((s) => s.puzzleTheme);
   const theme = useSettings((s) => s.theme);
   const animations = useSettings((s) => s.animations);
+  const navSize = useSettings((s) => s.navSize);
+  const graphSize = useSettings((s) => s.graphSize);
   const toast = useToast((s) => s.message);
 
   useEffect(() => applyTheme(theme), [theme]);
   useEffect(() => {
     document.documentElement.classList.toggle('no-anim', !animations);
   }, [animations]);
+  useEffect(() => {
+    document.documentElement.dataset.navSize = navSize;
+    document.documentElement.dataset.graphSize = graphSize;
+  }, [navSize, graphSize]);
 
   // Synchro du compte chess.com : à l'ouverture et à chaque retour au premier plan.
   useEffect(() => {
