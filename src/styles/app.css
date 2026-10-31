@@ -3119,3 +3119,10 @@ body.presenting .tabbar {
     max-width: none;
   }
 }
+
+/* Ouverture précise en tête du commentaire des coups théoriques. */
+.detail-opening {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: var(--fs-s);
+}

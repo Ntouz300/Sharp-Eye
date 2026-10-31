@@ -1,5 +1,5 @@
 import { Chess, type Square } from 'chess.js';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { winWhite as winWhite_ } from '../../analysis/analyzeGame';
 import { REVIEW_LABELS } from '../../analysis/classify';
 import { REVIEW_LEVELS, type ReviewLevel } from '../../analysis/config';
@@ -19,7 +19,9 @@ import { frenchVoices, resolveVoice, SAMPLE_SENTENCE, speak, speechAvailable, st
 import { useSettings } from '../settings/settings';
 import { EvalBar } from './EvalBar';
 import { EvalGraph } from './EvalGraph';
-import { MoveDetail } from './MoveDetail';
+import { MoveDetail, openingLine } from './MoveDetail';
+import { openingsByPly } from '../../analysis/openings';
+import { frenchName } from '../theory/names';
 import { narrationText } from './narration';
 import { MoveList } from './MoveList';
 import { DEEP_DEPTH, useReview } from './store';
@@ -202,13 +204,20 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
   analysisRef.current = analysis;
   /** Dernier coup dont la phrase a été lue jusqu'au bout pendant ce passage. */
   const spokenPly = useRef(-1);
+  const openings = useMemo(() => openingsByPly(game.startFen, game.moves), [game]);
+  // Nom de la variante quand elle change sur un coup théorique, pour la narration.
+  const newOpening = (p: number) => {
+    const o = openings[p - 1];
+    if (!o || analysisRef.current?.moves[p - 1]?.label !== 'book' || openings[p - 2]?.name === o.name) return undefined;
+    return frenchName(o.name);
+  };
   useEffect(() => {
     spokenPly.current = -1;
     if (!narration || ply === 0) return;
     let cancelled = false;
     let next = 0;
     const wait = window.setTimeout(() => {
-      void speak(narrationText(game.moves[ply - 1], analysisRef.current?.moves[ply - 1], useSettings.getState().sayMove)).then(() => {
+      void speak(narrationText(game.moves[ply - 1], analysisRef.current?.moves[ply - 1], useSettings.getState().sayMove, newOpening(ply))).then(() => {
         if (cancelled) return;
         spokenPly.current = ply;
         // En lecture automatique, le coup suivant attend la fin de la phrase.
@@ -412,7 +421,7 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
               </div>
             </div>
           ) : (
-            <MoveDetail move={move} analysis={moveAnalysis} />
+            <MoveDetail move={move} analysis={moveAnalysis} opening={openingLine(openings[ply - 1], moveAnalysis?.label, ply > 1 && analysis?.moves[ply - 2]?.label === 'book' && moveAnalysis?.label !== 'book')} />
           )}
         </div>
         <button type="button" className="deep-btn" onClick={() => setDeep('engine')}>

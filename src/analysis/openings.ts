@@ -23,3 +23,17 @@ export function lookupBook(startFen: string, moves: MoveNode[]): { inBook: boole
   }
   return { inBook, opening };
 }
+
+/**
+ * Ouverture précise après chaque coup (la variante nommée la plus profonde atteinte jusque-là),
+ * pour l'afficher en tête du commentaire des coups d'ouverture.
+ */
+export function openingsByPly(startFen: string, moves: MoveNode[]): ({ eco: string; name: string } | undefined)[] {
+  const standard = positionKey(startFen) === positionKey('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  let current: { eco: string; name: string } | undefined;
+  return moves.map((m, i) => {
+    const n = standard && i < 30 ? named[positionKey(m.fenAfter)] : undefined;
+    if (n) current = { eco: n[0], name: n[1] };
+    return current;
+  });
+}
