@@ -23,14 +23,27 @@ const PATHS: Record<string, string> = {
   mute: 'M4 9.5h3.5L12 5.5v13l-4.5-4H4z M16 9.5l5 5 M21 9.5l-5 5',
   trophy: 'M8 4h8v5a4 4 0 0 1-8 0z M8 6H5a3 3 0 0 0 3 4 M16 6h3a3 3 0 0 1-3 4 M12 13v4 M8.5 20h7 M10 17h4v3h-4z',
   calendar: 'M4 6h16v14H4z M4 10h16 M8 3.5v4 M16 3.5v4',
+  more: 'M5.5 12h.01 M12 12h.01 M18.5 12h.01',
+  back: 'M15 5l-7 7 7 7',
+  games: 'M5 4h14v16H5z M9 8h6 M9 12h6 M9 16h4',
+  training: 'M12 3l2.4 5 5.6.8-4 3.9.9 5.5L12 15.6 7.1 18.2 8 12.7 4 8.8 9.6 8z',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4.5 20a7.5 7.5 0 0 1 15 0',
+  layers: 'M12 4l8 4-8 4-8-4z M4 12l8 4 8-4 M4 16l8 4 8-4',
+  filter: 'M4 6h16 M7 12h10 M10 18h4',
+  plus: 'M12 5v14 M5 12h14',
+  sync: 'M19 12a7 7 0 0 1-12.3 4.6 M5 12a7 7 0 0 1 12.3-4.6 M17.5 3.5v4h-4 M6.5 20.5v-4h4',
+  'next-error': 'M5 6l6 6-6 6 M13 6l6 6-6 6',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  chevron: 'M9 6l6 6-6 6',
 };
 
 /** Icônes d'interface dessinées pour l'application (traits 24 × 24). */
 export function Icon({ name, size = 20 }: { name: keyof typeof PATHS | string; size?: number }) {
   const fill = name === 'play' ? 'currentColor' : 'none';
+  const thick = name === 'more';
   return (
     <svg className="icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d={PATHS[name]} fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={PATHS[name]} fill={fill} stroke="currentColor" strokeWidth={thick ? 3.2 : 2} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

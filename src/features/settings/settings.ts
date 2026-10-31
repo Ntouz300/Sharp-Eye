@@ -16,10 +16,14 @@ export interface Settings {
   narration: boolean;
   /** Échiquier incliné en perspective. */
   board3d: boolean;
+  /** Secondes entre deux coups en lecture automatique. */
+  playSpeed: number;
+  /** Niveau retenu pour l'analyse groupée. */
+  batchLevel: ReviewLevel;
 }
 
 const KEY = 'sharp-eye:settings';
-const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [], narration: false, board3d: false };
+const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [], narration: false, board3d: false, playSpeed: 1.2, batchLevel: 'standard' };
 
 function load(): Settings {
   try {

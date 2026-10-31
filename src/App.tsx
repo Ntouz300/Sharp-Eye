@@ -1,68 +1,79 @@
 import { useEffect } from 'react';
-import { Help } from './features/help/Help';
-import { Library } from './features/library/Library';
+import { useSync } from './features/account/chesscom';
+import { GamesScreen } from './features/library/GamesScreen';
+import { ProfileScreen } from './features/profile/ProfileScreen';
 import { ReviewScreen } from './features/review/ReviewScreen';
-import { useReview, type View } from './features/review/store';
-import { SettingsScreen } from './features/settings/SettingsScreen';
+import { useReview, type Tab } from './features/review/store';
 import { applyTheme, useSettings } from './features/settings/settings';
-import { Icon } from './ui/Icon';
-import { PuzzlesScreen } from './features/puzzles/PuzzlesScreen';
 import { StatsScreen } from './features/stats/StatsScreen';
+import { TrainingScreen } from './features/training/TrainingScreen';
+import { Icon } from './ui/Icon';
+import { useToast } from './ui/toast';
 
-const NAV: { id: View; label: string; icon: string }[] = [
-  { id: 'library', label: 'Bibliothèque', icon: 'library' },
-  { id: 'review', label: 'Revue', icon: 'board' },
-  { id: 'puzzles', label: 'Puzzles', icon: 'puzzle' },
-  { id: 'stats', label: 'Progrès', icon: 'chart' },
-  { id: 'settings', label: 'Réglages', icon: 'settings' },
-  { id: 'help', label: 'Aide', icon: 'help' },
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'games', label: 'Parties', icon: 'games' },
+  { id: 'training', label: 'Entraînement', icon: 'training' },
+  { id: 'progress', label: 'Progrès', icon: 'chart' },
+  { id: 'profile', label: 'Profil', icon: 'user' },
 ];
 
 export function App() {
-  const view = useReview((s) => s.view);
-  const setView = useReview((s) => s.setView);
-  const hasGame = useReview((s) => !!s.game);
+  const tab = useReview((s) => s.tab);
+  const setTab = useReview((s) => s.setTab);
+  const reviewOpen = useReview((s) => s.reviewOpen);
   const puzzleTheme = useReview((s) => s.puzzleTheme);
   const theme = useSettings((s) => s.theme);
   const animations = useSettings((s) => s.animations);
+  const toast = useToast((s) => s.message);
 
   useEffect(() => applyTheme(theme), [theme]);
   useEffect(() => {
     document.documentElement.classList.toggle('no-anim', !animations);
   }, [animations]);
 
+  // Synchro du compte chess.com : à l'ouverture et à chaque retour au premier plan.
+  useEffect(() => {
+    const sync = () => {
+      if (document.visibilityState === 'visible') void useSync.getState().sync();
+    };
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    window.addEventListener('online', sync);
+    return () => {
+      document.removeEventListener('visibilitychange', sync);
+      window.removeEventListener('online', sync);
+    };
+  }, []);
+
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <img src="./icons/icon.svg" width="28" height="28" alt="" className="brand-icon" />
-          <span className="brand-name">Sharp Eye</span>
-        </div>
-        <nav aria-label="Navigation principale">
-          {NAV.map((n) => (
-            <button
-              type="button"
-              key={n.id}
-              className={`nav-btn ${view === n.id ? 'active' : ''}`}
-              aria-current={view === n.id ? 'page' : undefined}
-              aria-label={n.label}
-              disabled={n.id === 'review' && !hasGame}
-              onClick={() => setView(n.id)}
-            >
-              <Icon name={n.icon} />
-              <span className="nav-label">{n.label}</span>
-            </button>
-          ))}
-        </nav>
-      </header>
-      <main className="content">
-        {view === 'library' && <Library />}
-        {view === 'review' && <ReviewScreen />}
-        {view === 'puzzles' && <PuzzlesScreen key={puzzleTheme} initialTheme={puzzleTheme} />}
-        {view === 'stats' && <StatsScreen />}
-        {view === 'settings' && <SettingsScreen />}
-        {view === 'help' && <Help />}
+    <div className={`app ${reviewOpen ? 'review-open' : ''}`}>
+      <main className="content" aria-hidden={reviewOpen || undefined}>
+        {tab === 'games' && <GamesScreen />}
+        {tab === 'training' && <TrainingScreen key={puzzleTheme} initialTheme={puzzleTheme} />}
+        {tab === 'progress' && <StatsScreen />}
+        {tab === 'profile' && <ProfileScreen />}
       </main>
+      <nav className="tabbar" aria-label="Navigation principale" aria-hidden={reviewOpen || undefined}>
+        {TABS.map((t) => (
+          <button
+            type="button"
+            key={t.id}
+            className={`tab-btn ${tab === t.id ? 'active' : ''}`}
+            aria-current={tab === t.id ? 'page' : undefined}
+            aria-label={t.label}
+            onClick={() => setTab(t.id)}
+          >
+            <Icon name={t.icon} size={22} />
+            <span className="tab-label">{t.label}</span>
+          </button>
+        ))}
+      </nav>
+      {reviewOpen && <ReviewScreen />}
+      {toast && (
+        <p className="toast" role="status">
+          {toast}
+        </p>
+      )}
     </div>
   );
 }

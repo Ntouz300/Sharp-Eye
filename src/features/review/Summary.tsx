@@ -40,7 +40,7 @@ function PlayerCard({ name, elo, s, color }: { name: string; elo?: string; s: Pl
   );
 }
 
-export function Summary({ game, analysis, onSelect }: { game: ParsedGame; analysis: GameAnalysis; onSelect: (ply: number) => void }) {
+export function Summary({ game, analysis, onSelect, children }: { game: ParsedGame; analysis: GameAnalysis; onSelect: (ply: number) => void; children?: React.ReactNode }) {
   const notation = useSettings((s) => s.notation);
   const cursor = useRef<Record<string, number>>({});
   const h = game.headers;
@@ -73,6 +73,8 @@ export function Summary({ game, analysis, onSelect }: { game: ParsedGame; analys
         <PlayerCard name={h.Black ?? 'Noirs'} elo={h.BlackElo} s={analysis.black} color="b" />
       </div>
 
+      {children}
+
       <table className="label-table">
         <caption className="sr-only">Nombre de coups par étiquette</caption>
         <thead>
@@ -86,6 +88,7 @@ export function Summary({ game, analysis, onSelect }: { game: ParsedGame; analys
           {LABEL_ORDER.map((label) => {
             const w = analysis.white.counts[label] ?? 0;
             const b = analysis.black.counts[label] ?? 0;
+            if (w + b === 0) return null;
             return (
               <tr key={label} className={w + b === 0 ? 'zero' : ''}>
                 <td>
@@ -108,54 +111,57 @@ export function Summary({ game, analysis, onSelect }: { game: ParsedGame; analys
         </tbody>
       </table>
 
-      <section className="summary-section">
-        <h3>Précision par phase</h3>
-        <table className="phase-table">
-          <tbody>
-            {PHASES.map((p) => (
-              <tr key={p.id}>
-                <td>{formatAccuracy(analysis.white.phases[p.id])}</td>
-                <th scope="row">{p.name}</th>
-                <td>{formatAccuracy(analysis.black.phases[p.id])}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="summary-section">
-        <h3>Ouverture</h3>
-        <p>
-          {opening ? (
-            <>
-              <strong>{opening.name}</strong> <span className="muted">({opening.eco})</span>
-            </>
-          ) : (
-            (h.ECO && <span>Code {h.ECO}</span>) || <span className="muted">Ouverture non répertoriée</span>
-          )}
-        </p>
-        <p className="muted small">
-          Blancs hors théorie : {analysis.white.leftBookAt !== undefined ? moveText(analysis.white.leftBookAt) : '–'} · Noirs hors théorie :{' '}
-          {analysis.black.leftBookAt !== undefined ? moveText(analysis.black.leftBookAt) : '–'}
-        </p>
-      </section>
-
-      {analysis.keyMoments.length > 0 && (
+      <details className="fold">
+        <summary>Détails : phases, ouverture, moments décisifs</summary>
         <section className="summary-section">
-          <h3>Moments décisifs</h3>
-          <div className="moments">
-            {analysis.keyMoments.map((i) => (
-              <button type="button" key={i} className="moment" onClick={() => onSelect(i + 1)}>
-                <LabelIcon label={analysis.moves[i].label} size={18} />
-                <span>{moveText(i)}</span>
-                <span className="muted small">
-                  {Math.round(analysis.winsWhite[i])} % → {Math.round(analysis.winsWhite[i + 1])} %
-                </span>
-              </button>
-            ))}
-          </div>
+          <h3>Précision par phase</h3>
+          <table className="phase-table">
+            <tbody>
+              {PHASES.map((p) => (
+                <tr key={p.id}>
+                  <td>{formatAccuracy(analysis.white.phases[p.id])}</td>
+                  <th scope="row">{p.name}</th>
+                  <td>{formatAccuracy(analysis.black.phases[p.id])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
-      )}
+
+        <section className="summary-section">
+          <h3>Ouverture</h3>
+          <p>
+            {opening ? (
+              <>
+                <strong>{opening.name}</strong> <span className="muted">({opening.eco})</span>
+              </>
+            ) : (
+              (h.ECO && <span>Code {h.ECO}</span>) || <span className="muted">Ouverture non répertoriée</span>
+            )}
+          </p>
+          <p className="muted small">
+            Blancs hors théorie : {analysis.white.leftBookAt !== undefined ? moveText(analysis.white.leftBookAt) : '–'} · Noirs hors théorie :{' '}
+            {analysis.black.leftBookAt !== undefined ? moveText(analysis.black.leftBookAt) : '–'}
+          </p>
+        </section>
+
+        {analysis.keyMoments.length > 0 && (
+          <section className="summary-section">
+            <h3>Moments décisifs</h3>
+            <div className="moments">
+              {analysis.keyMoments.map((i) => (
+                <button type="button" key={i} className="moment" onClick={() => onSelect(i + 1)}>
+                  <LabelIcon label={analysis.moves[i].label} size={18} />
+                  <span>{moveText(i)}</span>
+                  <span className="muted small">
+                    {Math.round(analysis.winsWhite[i])} % → {Math.round(analysis.winsWhite[i + 1])} %
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      </details>
     </div>
   );
 }
