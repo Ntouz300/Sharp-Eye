@@ -6,7 +6,8 @@ import { getEngine } from '../../engine/stockfish';
 import { decodeBytes, importPgn, parseGame, SPEED_LABEL, speedOf } from '../../pgn/parser';
 import type { ImportError } from '../../pgn/types';
 import { db, evalCache, type StoredGame } from '../../storage/db';
-import { deleteGame, saveGames } from '../../storage/games';
+import { deleteGame, findDuplicate, saveGames } from '../../storage/games';
+import { PositionEditor } from '../position/PositionEditor';
 import { Icon } from '../../ui/Icon';
 import { useReview } from '../review/store';
 import { useSettings } from '../settings/settings';
@@ -35,6 +36,7 @@ export function Library() {
   const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const openGame = useReview((s) => s.openGame);
+  const [editor, setEditor] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -120,6 +122,23 @@ export function Library() {
     setSelected(next);
   };
 
+  if (editor)
+    return (
+      <PositionEditor
+        onClose={() => setEditor(false)}
+        onAnalyze={async (fen) => {
+          const g = importPgn(`[SetUp "1"]\n[FEN "${fen}"]\n[Event "Position étudiée"]\n\n*`).games[0];
+          if (!g) return;
+          const existing = await findDuplicate(g);
+          const stored = existing ?? (await saveGames([g])).added[0];
+          if (stored) {
+            setEditor(false);
+            await openGame(stored);
+          }
+        }}
+      />
+    );
+
   return (
     <div className="library">
       <section
@@ -154,6 +173,9 @@ export function Library() {
               e.target.value = '';
             }}
           />
+          <button type="button" className="ghost" onClick={() => setEditor(true)} disabled={busy}>
+            Position (image ou éditeur)
+          </button>
           <button type="button" className="ghost" onClick={() => runImport(SAMPLE_PGN)} disabled={busy}>
             Essayer avec une partie d'exemple
           </button>

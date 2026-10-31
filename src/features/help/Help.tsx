@@ -65,6 +65,7 @@ export function Help() {
           <li><strong>Devine le coup</strong> : depuis la revue, l’app cache la suite et note chacun de tes coups (3 points pour le meilleur coup du moteur).</li>
           <li><strong>Rejouer contre le moteur</strong> : reprends la position affichée face à Stockfish, de 800 à 2800 Elo.</li>
           <li><strong>Progrès</strong> : précision dans le temps, bilan du mois, répertoire d’ouvertures, faiblesses tactiques et badges.</li>
+          <li><strong>Position depuis une image</strong> : dans la Bibliothèque, « Position (image ou éditeur) » lit une capture d’écran d’un échiquier en 2D, puis te laisse corriger chaque case avant d’analyser la position ou de la jouer contre le moteur.</li>
           <li><strong>Narration et présentation</strong> : le haut-parleur lit les coups et les explications à voix haute ; le bouton plein écran agrandit l’échiquier pour montrer une partie. L’échiquier en perspective 3D s’active dans les Réglages.</li>
         </ul>
       </section>

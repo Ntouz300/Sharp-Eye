@@ -28,7 +28,7 @@ interface BoardProps {
 }
 
 const FILES = 'abcdefgh';
-const PIECE_URL: Record<string, string> = Object.fromEntries(
+export const PIECE_URL: Record<string, string> = Object.fromEntries(
   Object.entries(CBURNETT).map(([k, svg]) => [k, `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`]),
 );
 

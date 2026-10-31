@@ -45,6 +45,7 @@ export function App() {
               key={n.id}
               className={`nav-btn ${view === n.id ? 'active' : ''}`}
               aria-current={view === n.id ? 'page' : undefined}
+              aria-label={n.label}
               disabled={n.id === 'review' && !hasGame}
               onClick={() => setView(n.id)}
             >

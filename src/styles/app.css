@@ -1798,3 +1798,77 @@ body.presenting .topbar {
   height: 100%;
   background: var(--accent);
 }
+
+.palette {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.palette-btn {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 2px;
+}
+
+.palette-btn img {
+  width: 100%;
+  max-width: 40px;
+}
+
+.palette-btn.active {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.photo-preview {
+  position: relative;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.photo-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 6px;
+}
+
+.photo-grid {
+  position: absolute;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.25);
+  pointer-events: none;
+}
+
+.photo-preview {
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.fen-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fen-field input {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.error-text {
+  color: var(--text);
+  border-left: 3px solid #c0392b;
+  padding-left: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .brand-name {
+    display: none;
+  }
+}
