@@ -1,5 +1,5 @@
 import type { ParsedGame } from '../pgn/types';
-import { db, type StoredGame } from './db';
+import { db, type GameOrigin, type StoredGame } from './db';
 
 function hash(s: string): string {
   let h1 = 0x811c9dc5;
@@ -15,10 +15,21 @@ export function movesKeyOf(g: ParsedGame): string {
   return hash(g.startFen + '|' + g.moves.map((m) => m.uci).join(' '));
 }
 
+/** Provenance déduite des en-têtes, pour les parties importées à la main. */
+export function originOf(g: ParsedGame): GameOrigin {
+  const h = g.headers;
+  const where = `${h.Link ?? ''} ${h.Site ?? ''}`.toLowerCase();
+  if (where.includes('chess.com')) return 'chesscom';
+  if (where.includes('lichess.org')) return 'lichess';
+  if (!g.moves.length) return 'position';
+  return 'pgn';
+}
+
 function toStored(g: ParsedGame): StoredGame {
   const h = g.headers;
   const movesKey = movesKeyOf(g);
   return {
+    origin: originOf(g),
     id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     source: g.source ?? '',
     white: h.White && h.White !== '?' ? h.White : 'Blancs',
@@ -40,21 +51,35 @@ function toStored(g: ParsedGame): StoredGame {
 }
 
 /** Enregistre les parties, en ignorant les doublons (même lien ou même suite de coups). */
-export async function saveGames(games: ParsedGame[]): Promise<{ added: StoredGame[]; duplicates: number }> {
+export interface SaveOptions {
+  origin?: GameOrigin;
+  /** Date d'arrivée dans la bibliothèque, par partie (ex. fin de la partie sur chess.com). */
+  importedAt?: (g: ParsedGame, i: number) => number | undefined;
+  unanalyzable?: (g: ParsedGame, i: number) => boolean;
+}
+
+export async function saveGames(games: ParsedGame[], opts: SaveOptions = {}): Promise<{ added: StoredGame[]; duplicates: number }> {
   const existing = await db.games.toArray();
   const keys = new Set(existing.map((g) => g.movesKey));
   const links = new Set(existing.map((g) => g.link).filter(Boolean));
   const added: StoredGame[] = [];
   let duplicates = 0;
-  for (const g of games) {
+  for (const [i, g] of games.entries()) {
     const s = toStored(g);
+    if (opts.origin) s.origin = opts.origin;
+    if (opts.unanalyzable?.(g, i)) s.unanalyzable = true;
     if (keys.has(s.movesKey) || (s.link && links.has(s.link))) {
       duplicates++;
+      // Partie déjà collée à la main : on la rattache au compte synchronisé au lieu de la dupliquer.
+      if (opts.origin) {
+        const old = existing.find((e) => (s.link && e.link === s.link) || e.movesKey === s.movesKey);
+        if (old && old.origin !== opts.origin) await db.games.update(old.id, { origin: opts.origin, link: old.link ?? s.link });
+      }
       continue;
     }
     keys.add(s.movesKey);
     if (s.link) links.add(s.link);
-    s.importedAt = Date.now() + added.length / 1000;
+    s.importedAt = opts.importedAt?.(g, i) ?? Date.now() + added.length / 1000;
     added.push(s);
   }
   await db.games.bulkAdd(added);
