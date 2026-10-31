@@ -340,7 +340,19 @@ export interface Explanation {
 
 const GOOD_EXPLAINED: Label[] = ['brilliant', 'great', 'excellent'];
 
+const memo = new Map<string, Explanation | null>();
+
+/** Explication d'un coup (mémorisée : la revue reconstruit l'analyse après chaque position). */
 export function explainMove(input: ExplainInput): Explanation | null {
+  const key = JSON.stringify(input);
+  if (memo.has(key)) return memo.get(key)!;
+  const e = computeExplanation(input);
+  if (memo.size > 4000) memo.clear();
+  memo.set(key, e);
+  return e;
+}
+
+function computeExplanation(input: ExplainInput): Explanation | null {
   const before = new Chess(input.fenBefore);
   const color = before.turn();
   if (GOOD_EXPLAINED.includes(input.label)) {
