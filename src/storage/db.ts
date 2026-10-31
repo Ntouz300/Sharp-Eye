@@ -41,13 +41,13 @@ export interface StoredEval {
 }
 
 /** Base locale (IndexedDB). Le schéma est versionné : ajouter une version pour chaque migration. */
-export class LucideDB extends Dexie {
+export class SharpEyeDB extends Dexie {
   games!: Table<StoredGame, string>;
   analyses!: Table<StoredAnalysis, string>;
   evals!: Table<StoredEval, string>;
 
   constructor() {
-    super('echiquier-lucide');
+    super('sharp-eye');
     this.version(1).stores({
       games: 'id, importedAt, movesKey, link, white, black, date',
       analyses: 'key, gameId',
@@ -56,7 +56,7 @@ export class LucideDB extends Dexie {
   }
 }
 
-export const db = new LucideDB();
+export const db = new SharpEyeDB();
 
 export const evalCache = {
   async get(key: string) {

@@ -20,6 +20,8 @@ export interface MoveNode {
   /** Évaluation annotée dans le PGN ([%eval]), en centipions côté blancs, ou mat. */
   evalAnnot?: { cp?: number; mate?: number };
   comment?: string;
+  /** Évaluations moteur de Sharp Eye ([%se …]) pour la position après ce coup. */
+  engineData?: string;
   nags: number[];
   shapes: Shape[];
   /** Variantes qui remplacent ce coup (alternatives jouées depuis fenBefore). */
@@ -33,6 +35,8 @@ export interface ParsedGame {
   result: string;
   /** Commentaire placé avant le premier coup. */
   preComment?: string;
+  /** Évaluations moteur de Sharp Eye pour la position de départ. */
+  startEngineData?: string;
   /** Texte source de la partie, conservé pour la réimporter à l'identique. */
   source?: string;
   /** Avertissements non bloquants (variante illisible ignorée, etc.). */

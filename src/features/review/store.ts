@@ -6,6 +6,7 @@ import { parseGame } from '../../pgn/parser';
 import type { ParsedGame } from '../../pgn/types';
 import { db, evalCache, type StoredGame } from '../../storage/db';
 import { useSettings } from '../settings/settings';
+import { restoreAnalysis } from '../../analysis/pgnExport';
 
 export type View = 'library' | 'review' | 'settings' | 'help';
 
@@ -64,6 +65,18 @@ export const useReview = create<ReviewState>((set, get) => ({
     const done = saved.find((a) => a.analysis.complete);
     if (done) {
       set({ analysis: done.analysis });
+      return;
+    }
+    // PGN exporté par Sharp Eye : la revue est reconstruite sans relancer le moteur.
+    const restored = restoreAnalysis(game);
+    if (restored) {
+      set({ analysis: restored.analysis });
+      await db.analyses.put({ key: `${stored.id}|${restored.analysis.level}`, gameId: stored.id, analysis: restored.analysis });
+      await db.games.update(stored.id, {
+        accuracyWhite: restored.analysis.white.accuracy ?? undefined,
+        accuracyBlack: restored.analysis.black.accuracy ?? undefined,
+        analyzedLevel: restored.analysis.level,
+      });
       return;
     }
     void get().analyze(useSettings.getState().level);

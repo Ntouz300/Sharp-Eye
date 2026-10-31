@@ -140,7 +140,9 @@ export function parseCommentCommands(raw: string): {
   clock?: number;
   evalAnnot?: { cp?: number; mate?: number };
   shapes: Shape[];
+  engineData?: string;
 } {
+  let engineData: string | undefined;
   let clock: number | undefined;
   let evalAnnot: { cp?: number; mate?: number } | undefined;
   const shapes: Shape[] = [];
@@ -153,6 +155,8 @@ export function parseCommentCommands(raw: string): {
       const v = a.split(',')[0];
       if (v.startsWith('#')) evalAnnot = { mate: Number(v.slice(1)) };
       else if (!Number.isNaN(Number(v))) evalAnnot = { cp: Math.round(Number(v) * 100) };
+    } else if (cmd === 'se') {
+      engineData = a;
     } else if (cmd === 'csl' || cmd === 'cal') {
       for (const item of a.split(',')) {
         const m = /^([GRYB])([a-h][1-8])([a-h][1-8])?$/.exec(item.trim());
@@ -161,7 +165,7 @@ export function parseCommentCommands(raw: string): {
     }
     return '';
   });
-  return { text: text.replace(/\s+/g, ' ').trim(), clock, evalAnnot, shapes };
+  return { text: text.replace(/\s+/g, ' ').trim(), clock, evalAnnot, shapes, engineData };
 }
 
 class GameError extends Error {
@@ -197,6 +201,7 @@ function applyComment(target: MoveNode, raw: string) {
   const c = parseCommentCommands(raw);
   if (c.clock !== undefined) target.clock = c.clock;
   if (c.evalAnnot) target.evalAnnot = c.evalAnnot;
+  if (c.engineData) target.engineData = c.engineData;
   target.shapes.push(...c.shapes);
   if (c.text) target.comment = target.comment ? `${target.comment} ${c.text}` : c.text;
 }
@@ -209,7 +214,7 @@ function parseLine(
   french: boolean,
   warnings: string[],
   isMain: boolean,
-  pre: { comment?: string },
+  pre: { comment?: string; engineData?: string },
 ): MoveNode[] {
   const chess = new Chess(fenStart);
   const line: MoveNode[] = [];
@@ -232,6 +237,7 @@ function parseLine(
       if (last) applyComment(last, tok.v);
       else {
         const c = parseCommentCommands(tok.v);
+        if (c.engineData) pre.engineData = c.engineData;
         if (c.text) pre.comment = pre.comment ? `${pre.comment} ${c.text}` : c.text;
       }
       continue;
@@ -322,12 +328,12 @@ export function parseGame(text: string): ParsedGame {
   const tokens = tokenize(movetext);
   const french = isFrench(tokens);
   const warnings: string[] = [];
-  const pre: { comment?: string } = {};
+  const pre: { comment?: string; engineData?: string } = {};
   const pos = { i: 0 };
   const moves = parseLine(tokens, pos, startFen, french, warnings, true, pre);
   const resultTok = tokens.find((t) => t.t === 'result') as { v: string } | undefined;
   const result = headers.Result && RESULTS.has(headers.Result) ? headers.Result : (resultTok?.v ?? '*');
-  return { headers, startFen, moves, result, preComment: pre.comment, warnings };
+  return { headers, startFen, moves, result, preComment: pre.comment, startEngineData: pre.engineData, warnings };
 }
 
 function gameLabel(text: string, index: number): string {

@@ -35,9 +35,10 @@ export function MoveDetail({ move, analysis }: { move?: MoveNode; analysis?: Mov
         </span>
       </div>
       {PRAISE[analysis.label] && <p className="detail-text">{PRAISE[analysis.label]}</p>}
+      {analysis.explanation && <p className="detail-text explanation">{analysis.explanation}</p>}
       {!analysis.playedIsBest && analysis.bestSan && analysis.label !== 'book' && analysis.label !== 'forced' && (
         <p className="detail-text">
-          {review ? `Ce coup fait perdre ${loss.toFixed(0)} points de chances de gain. ` : ''}
+          {review ? `Chances de gain : −${loss.toFixed(0)} points. ` : ''}
           Le meilleur coup était <strong>{displaySan(analysis.bestSan, notation)}</strong>
           {analysis.bestLine.length > 1 && (
             <span className="pv">

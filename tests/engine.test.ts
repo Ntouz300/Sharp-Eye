@@ -51,3 +51,21 @@ describe('revue avec Stockfish', () => {
     expect(a.moves[1].label).toBe('miss');
   }, 60000);
 });
+
+describe('export PGN annoté', () => {
+  it('un PGN exporté puis réimporté redonne la même revue sans moteur', async () => {
+    const { exportAnnotatedPgn, restoreAnalysis } = await import('../src/analysis/pgnExport');
+    const a = await analyzeGame(opera, { level: 'quick', engine });
+    const pgn = exportAnnotatedPgn(opera, a, a.evals);
+    expect(pgn).toContain('[Annotator "Sharp Eye"]');
+    expect(pgn).toContain('[%clk 0:09:58.1]');
+    const re = importPgn(pgn);
+    expect(re.errors).toEqual([]);
+    const restored = restoreAnalysis(re.games[0]);
+    expect(restored).not.toBeNull();
+    expect(restored!.analysis.moves.map((m) => m.label)).toEqual(a.moves.map((m) => m.label));
+    expect(restored!.analysis.white.accuracy!.toFixed(1)).toBe(a.white.accuracy!.toFixed(1));
+    expect(restored!.analysis.black.accuracy!.toFixed(1)).toBe(a.black.accuracy!.toFixed(1));
+    expect(restored!.analysis.moves.map((m) => m.explanation)).toEqual(a.moves.map((m) => m.explanation));
+  }, 120000);
+});

@@ -1,4 +1,4 @@
-# Échiquier Lucide
+# Sharp Eye
 
 Revue de parties d'échecs pensée pour l'iPad : importe une partie (PGN chess.com ou Lichess, liste de coups, FEN), et obtiens en moins d'une minute la précision de chaque joueur, l'étiquette de chaque coup, les moments décisifs et le meilleur coup à chaque erreur. Tout est calculé sur l'appareil par Stockfish 18 (WebAssembly) ; les parties restent dans le navigateur (IndexedDB).
 

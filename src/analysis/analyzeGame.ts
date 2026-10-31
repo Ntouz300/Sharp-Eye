@@ -4,6 +4,7 @@ import type { MoveNode, ParsedGame } from '../pgn/types';
 import { gameAccuracy } from './accuracy';
 import { classifyMove, type Label } from './classify';
 import { REVIEW_LEVELS, type ReviewLevel } from './config';
+import { explainMove } from './explain';
 import { isRecapture, majorsAndMinors, sacrificedMaterial } from './material';
 import { lookupBook } from './openings';
 import { estimatePerformance } from './performance';
@@ -27,6 +28,8 @@ export interface MoveAnalysis {
   bestLine: string[];
   playedIsBest: boolean;
   phase: Phase;
+  /** Explication en français pour les coups à revoir. */
+  explanation?: string;
 }
 
 export interface PlayerSummary {
@@ -53,6 +56,8 @@ export interface GameAnalysis {
   /** Index des trois coups qui ont le plus changé la partie. */
   keyMoments: number[];
   complete: boolean;
+  /** Évaluations de chaque position (lignes limitées à 8 demi-coups), pour l'export PGN annoté. */
+  evals: PositionEval[];
 }
 
 /** Cache des évaluations (clé FEN + profondeur + MultiPV). */
@@ -154,8 +159,10 @@ export async function analyzeGame(game: ParsedGame, opts: AnalyzeOptions): Promi
 }
 
 /** Construit l'analyse (classification, précisions, résumé) à partir des évaluations déjà calculées. */
-export function buildAnalysis(game: ParsedGame, evals: PositionEval[], level: ReviewLevel, engineName: string): GameAnalysis {
+export function buildAnalysis(game: ParsedGame, rawEvals: PositionEval[], level: ReviewLevel, engineName: string): GameAnalysis {
   const { depth } = REVIEW_LEVELS[level];
+  // Lignes limitées à 8 demi-coups : la revue ne dépend que de ce que l'export PGN conserve.
+  const evals = rawEvals.map((e) => ({ ...e, lines: e.lines.map((l) => ({ ...l, pv: l.pv.slice(0, 8) })) }));
   const scores = evals.map((e) => e.lines[0]?.score ?? { cp: 0 });
   const winsWhite = scores.map(winWhite);
   const phases = computePhases(game.moves);
@@ -204,6 +211,16 @@ export function buildAnalysis(game: ParsedGame, evals: PositionEval[], level: Re
       bestLine: uciToSanLine(m.fenBefore, best.pv, 8),
       playedIsBest,
       phase: phases[i],
+      explanation:
+        explainMove({
+          label,
+          fenBefore: m.fenBefore,
+          playedUci: m.uci,
+          bestPv: best.pv,
+          bestScore: best.score,
+          replyPv: after.lines[0].pv,
+          scoreAfter: after.lines[0].score,
+        }) ?? undefined,
     });
   }
 
@@ -254,5 +271,6 @@ export function buildAnalysis(game: ParsedGame, evals: PositionEval[], level: Re
     black: summary('b'),
     keyMoments,
     complete: moves.length === game.moves.length,
+    evals,
   };
 }

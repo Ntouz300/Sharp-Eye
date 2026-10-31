@@ -10,6 +10,8 @@ import { deleteGame, saveGames } from '../../storage/games';
 import { Icon } from '../../ui/Icon';
 import { useReview } from '../review/store';
 import { useSettings } from '../settings/settings';
+import { lichessGamePgn, parseGameLink } from './online';
+import { networkMessage, OnlineImport } from './OnlineImport';
 import { SAMPLE_PGN } from './sample';
 
 const ROW_H = 68;
@@ -44,9 +46,27 @@ export function Library() {
     });
   }, [games, query, result]);
 
-  const runImport = async (text: string) => {
+  const [onlineDone, setOnlineDone] = useState<Set<string>>(new Set());
+
+  const runImport = async (input: string) => {
     setBusy(true);
     setReport(null);
+    let text = input;
+    const link = parseGameLink(input);
+    if (link) {
+      if (link.site === 'chesscom') {
+        setReport({ added: 0, duplicates: 0, errors: [{ gameIndex: 1, label: 'Lien chess.com', message: 'chess.com ne permet pas de récupérer une partie par son lien. Utilise « Depuis un site » avec ton pseudo, ou colle le PGN (Partager → PGN sur chess.com).' }] });
+        setBusy(false);
+        return;
+      }
+      try {
+        text = await lichessGamePgn(link.id);
+      } catch (e) {
+        setReport({ added: 0, duplicates: 0, errors: [{ gameIndex: 1, label: 'Lien Lichess', message: networkMessage(e) }] });
+        setBusy(false);
+        return;
+      }
+    }
     // Laisse le navigateur afficher l'état « import en cours » avant le calcul.
     await new Promise((r) => setTimeout(r, 30));
     try {
@@ -141,7 +161,7 @@ export function Library() {
           <textarea
             value={paste}
             onChange={(e) => setPaste(e.target.value)}
-            placeholder={'Colle ici un PGN, une liste de coups (1. e4 e5 2. Cf3 …) ou une FEN'}
+            placeholder={'Colle ici un PGN, une liste de coups (1. e4 e5 2. Cf3 …), une FEN ou un lien Lichess'}
             rows={4}
             spellCheck={false}
             autoCapitalize="off"
@@ -159,6 +179,14 @@ export function Library() {
         >
           {busy ? 'Import en cours…' : 'Importer le texte collé'}
         </button>
+
+        <OnlineImport
+          importedIds={onlineDone}
+          onImport={async (pgn, id) => {
+            await runImport(pgn);
+            setOnlineDone((prev) => new Set(prev).add(id));
+          }}
+        />
 
         {report && (
           <div className={report.errors.length ? 'report warn' : 'report ok'} role="status">

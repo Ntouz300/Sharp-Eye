@@ -30,12 +30,8 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true">
-            <rect width="64" height="64" rx="14" fill="var(--accent)" />
-            <path d="M22 50h20l-3-8c4-3 6-8 5-13-1-6-6-10-12-10s-11 4-12 10c-1 5 1 10 5 13z" fill="var(--accent-text)" opacity="0.92" />
-            <circle cx="40" cy="22" r="5" fill="var(--accent-text)" opacity="0.6" />
-          </svg>
-          <span className="brand-name">Échiquier Lucide</span>
+          <img src="./icons/icon.svg" width="28" height="28" alt="" className="brand-icon" />
+          <span className="brand-name">Sharp Eye</span>
         </div>
         <nav aria-label="Navigation principale">
           {NAV.map((n) => (

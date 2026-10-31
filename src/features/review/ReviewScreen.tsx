@@ -1,4 +1,12 @@
+import { Chess, type Square } from 'chess.js';
 import { useEffect, useRef, useState } from 'react';
+import { winWhite as winWhite_ } from '../../analysis/analyzeGame';
+import { formatScore } from '../../analysis/winPercent';
+import { useLiveEngine } from '../../engine/useLiveEngine';
+import { exportAnnotatedPgn } from '../../analysis/pgnExport';
+import { boardToPng } from '../../board/exportImage';
+import { safeFilename, shareOrDownload } from '../../ui/share';
+import { displaySan } from '../../ui/notation';
 import { REVIEW_LABELS } from '../../analysis/classify';
 import { REVIEW_LEVELS, type ReviewLevel } from '../../analysis/config';
 import { Board, type Arrow } from '../../board/Board';
@@ -10,15 +18,18 @@ import { MoveDetail } from './MoveDetail';
 import { MoveList } from './MoveList';
 import { useReview } from './store';
 import { Summary } from './Summary';
+import { TimeGraph } from './TimeGraph';
 
 type Tab = 'summary' | 'moves';
 
 export function ReviewScreen() {
   const { game, analysis, progress, error, ply, flipped, autoplay, errorFilter, stored } = useReview();
   const { goTo, step, flip, setAutoplay, setErrorFilter, analyze, cancel } = useReview.getState();
-  const { coordinates, animations, level } = useSettings();
+  const { coordinates, animations, level, notation } = useSettings();
   const [tab, setTab] = useState<Tab>('moves');
   const [speed, setSpeed] = useState(1.2);
+  const [graph, setGraph] = useState<'eval' | 'time'>('eval');
+  const [notice, setNotice] = useState<string | null>(null);
   // Anime la pièce seulement quand on avance d'un coup ; l'état reste stable pendant les mises à jour de l'analyse.
   const anim = useRef({ ply, forward: false });
   if (anim.current.ply !== ply) anim.current = { ply, forward: ply === anim.current.ply + 1 };
@@ -57,13 +68,46 @@ export function ReviewScreen() {
     }
   };
 
-  // Clavier : ← → (coup), ↑ ↓ (début/fin), F (retourner), espace (lecture)
+  // Mode Explorer : variante jouée par l'utilisateur depuis la position affichée, sans toucher à la partie.
+  const [explore, setExplore] = useState<ExploreMove[]>([]);
+  const [selected, setSelected] = useState<string | undefined>();
+  const [linesOpen, setLinesOpen] = useState(false);
+  const [multiPv, setMultiPv] = useState(3);
+  const [shownBest, setShownBest] = useState(0);
+  useEffect(() => {
+    setExplore([]);
+    setSelected(undefined);
+  }, [ply, stored?.id]);
+  const gameFen = game ? (ply > 0 ? game.moves[ply - 1].fenAfter : game.startFen) : null;
+  const displayFen = explore.length ? explore[explore.length - 1].fen : gameFen;
+  const live = useLiveEngine(explore.length || linesOpen || shownBest ? displayFen : null, 18, explore.length && !linesOpen && !shownBest ? 1 : Math.max(multiPv, shownBest));
+
+  const onSquareTap = (sq: string) => {
+    if (!displayFen) return;
+    const chess = new Chess(displayFen);
+    if (selected) {
+      const legal = chess.moves({ square: selected as Square, verbose: true });
+      const m = legal.find((x) => x.to === sq);
+      if (m) {
+        const mv = chess.move({ from: m.from, to: m.to, promotion: m.promotion ? 'q' : undefined });
+        setExplore([...explore, { san: mv.san, uci: mv.from + mv.to + (mv.promotion ?? ''), fen: chess.fen() }]);
+        setSelected(undefined);
+        return;
+      }
+    }
+    const piece = chess.get(sq as Square);
+    setSelected(piece && piece.color === chess.turn() && sq !== selected ? sq : undefined);
+  };
+
+  // Clavier : ← → (coup), ↑ ↓ (début/fin), F (retourner), espace (lecture), 1 à 3 (meilleurs coups)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
       if (e.key === 'ArrowRight') step(1);
       else if (e.key === 'ArrowLeft') step(-1);
+      else if (['1', '2', '3'].includes(e.key)) setShownBest((n) => (n === Number(e.key) ? 0 : Number(e.key)));
+      else if (e.key === 'Escape') setShownBest(0);
       else if (e.key === 'ArrowUp') goTo(0);
       else if (e.key === 'ArrowDown') goTo(Number.MAX_SAFE_INTEGER);
       else if (e.key === 'f' || e.key === 'F') flip();
@@ -78,17 +122,25 @@ export function ReviewScreen() {
 
   if (!game || !stored) return <div className="empty-state">Choisis une partie dans la bibliothèque.</div>;
 
+  const hasClock = game.moves.some((m) => m.clock !== undefined);
   const move = ply > 0 ? game.moves[ply - 1] : undefined;
   const moveAnalysis = ply > 0 ? analysis?.moves[ply - 1] : undefined;
-  const fen = move ? move.fenAfter : game.startFen;
+  const exploring = explore.length > 0;
+  const fen = displayFen ?? game.startFen;
+  const lastExplore = exploring ? explore[explore.length - 1] : undefined;
   const arrows: Arrow[] = [];
-  if (move && moveAnalysis && !moveAnalysis.playedIsBest && moveAnalysis.bestUci && moveAnalysis.label !== 'book') {
+  if (shownBest && live.result) {
+    for (const l of live.result.lines.slice(0, shownBest)) if (l.pv[0]) arrows.push({ from: l.pv[0].slice(0, 2), to: l.pv[0].slice(2, 4), kind: 'best' });
+  } else if (!exploring && move && moveAnalysis && !moveAnalysis.playedIsBest && moveAnalysis.bestUci && moveAnalysis.label !== 'book') {
     arrows.push({ from: moveAnalysis.bestUci.slice(0, 2), to: moveAnalysis.bestUci.slice(2, 4), kind: 'best' });
   }
-  const lastMove = move ? { from: move.uci.slice(0, 2), to: move.uci.slice(2, 4) } : undefined;
+  const playedMove = move ? { from: move.uci.slice(0, 2), to: move.uci.slice(2, 4) } : undefined;
+  const lastMove = lastExplore ? { from: lastExplore.uci.slice(0, 2), to: lastExplore.uci.slice(2, 4) } : playedMove;
+  const targets = selected ? new Chess(fen).moves({ square: selected as Square, verbose: true }).map((m) => m.to) : [];
+  const liveScore = live.result?.lines[0]?.score;
   const forward = anim.current.forward;
-  const winWhite = analysis?.winsWhite[ply] ?? null;
-  const score = analysis?.scores[ply];
+  const winWhite = exploring ? (liveScore ? winWhite_(liveScore) : null) : (analysis?.winsWhite[ply] ?? null);
+  const score = exploring ? liveScore : analysis?.scores[ply];
   const h = game.headers;
   const top = flipped ? { name: h.White, elo: h.WhiteElo, clock: lastClock(game.moves, ply, 'w') } : { name: h.Black, elo: h.BlackElo, clock: lastClock(game.moves, ply, 'b') };
   const bottom = flipped ? { name: h.Black, elo: h.BlackElo, clock: lastClock(game.moves, ply, 'b') } : { name: h.White, elo: h.WhiteElo, clock: lastClock(game.moves, ply, 'w') };
@@ -104,10 +156,13 @@ export function ReviewScreen() {
             flipped={flipped}
             lastMove={lastMove}
             arrows={arrows}
-            badge={moveAnalysis && lastMove ? { square: lastMove.to, label: moveAnalysis.label } : undefined}
-            animateFrom={animations && forward && lastMove ? lastMove.from : undefined}
+            badge={!exploring && moveAnalysis && lastMove ? { square: lastMove.to, label: moveAnalysis.label } : undefined}
+            animateFrom={animations && (forward || exploring) && lastMove ? lastMove.from : undefined}
             coordinates={coordinates}
-            onSwipe={(d) => step(d)}
+            onSwipe={(d) => (exploring ? (d < 0 ? setExplore(explore.slice(0, -1)) : undefined) : step(d))}
+            onSquareTap={onSquareTap}
+            selected={selected}
+            targets={targets}
           />
         </div>
         <PlayerStrip {...bottom} />
@@ -172,9 +227,71 @@ export function ReviewScreen() {
           </div>
         )}
 
-        <EvalGraph analysis={analysis} plies={game.moves.length} ply={ply} onSelect={goTo} />
+        {hasClock && (
+          <div className="graph-switch" role="tablist" aria-label="Graphique">
+            <button type="button" role="tab" aria-selected={graph === 'eval'} onClick={() => setGraph('eval')}>
+              Évaluation
+            </button>
+            <button type="button" role="tab" aria-selected={graph === 'time'} onClick={() => setGraph('time')}>
+              Temps
+            </button>
+          </div>
+        )}
+        {graph === 'time' && hasClock ? (
+          <TimeGraph moves={game.moves} timeControl={game.headers.TimeControl} ply={ply} onSelect={goTo} />
+        ) : (
+          <EvalGraph analysis={analysis} plies={game.moves.length} ply={ply} onSelect={goTo} />
+        )}
 
-        <MoveDetail move={move} analysis={moveAnalysis} />
+        {exploring ? (
+          <div className="explore-box" aria-live="polite">
+            <div className="detail-head">
+              <strong>Exploration</strong>
+              <span className="detail-eval">{live.loading ? 'calcul…' : liveScore ? formatScore(liveScore) : ''}</span>
+            </div>
+            <p className="detail-text">
+              {move ? `Après ${move.moveNumber}${move.color === 'w' ? '.' : '...'} ${displaySan(move.san, notation)} : ` : 'Depuis le départ : '}
+              <strong>{explore.map((m) => displaySan(m.san, notation)).join(' ')}</strong>
+            </p>
+            <div className="explore-actions">
+              <button type="button" className="ghost" onClick={() => setExplore(explore.slice(0, -1))}>
+                Annuler le coup
+              </button>
+              <button type="button" className="primary" onClick={() => setExplore([])}>
+                Revenir à la partie
+              </button>
+            </div>
+          </div>
+        ) : (
+          <MoveDetail move={move} analysis={moveAnalysis} />
+        )}
+
+        <details className="engine-lines" open={linesOpen} onToggle={(e) => setLinesOpen((e.target as HTMLDetailsElement).open)}>
+          <summary>
+            Lignes du moteur <span className="muted small">(touche une pièce pour explorer · 1 à 3 : flèches)</span>
+          </summary>
+          {linesOpen && (
+            <div className="lines-body">
+              <label className="small muted">
+                Nombre de lignes{' '}
+                <select value={multiPv} onChange={(e) => setMultiPv(Number(e.target.value))}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {live.loading && <p className="muted small">Calcul en profondeur 18…</p>}
+              {live.result?.lines.map((l) => (
+                <p key={l.multipv} className="engine-line">
+                  <span className="line-score">{formatScore(l.score)}</span>
+                  <span>{pvToSan(fen, l.pv, 10).map((x) => displaySan(x, notation)).join(' ')}</span>
+                </p>
+              ))}
+            </div>
+          )}
+        </details>
 
         <div className="error-nav">
           <button type="button" className="ghost" onClick={() => jumpError(-1)} disabled={!analysis}>
@@ -202,6 +319,37 @@ export function ReviewScreen() {
           {tab === 'summary' && analysis?.complete ? (
             <>
               <Summary game={game} analysis={analysis} onSelect={goTo} />
+              <div className="export-row">
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={async () => {
+                    const pgn = exportAnnotatedPgn(game, analysis, analysis.evals ?? []);
+                    const r = await shareOrDownload(new Blob([pgn], { type: 'application/x-chess-pgn' }), `${safeFilename(`${h.White ?? 'blancs'}-${h.Black ?? 'noirs'}`)}.pgn`, 'Partie annotée');
+                    setNotice(r === 'downloaded' ? 'PGN annoté téléchargé.' : r === 'shared' ? 'PGN annoté partagé.' : null);
+                  }}
+                >
+                  <Icon name="upload" /> PGN annoté
+                </button>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={async () => {
+                    const svg = document.querySelector<SVGSVGElement>('svg.board');
+                    if (!svg) return;
+                    try {
+                      const png = await boardToPng(svg);
+                      const r = await shareOrDownload(png, `${safeFilename(`position-${ply}`)}.png`, 'Position');
+                      setNotice(r === 'downloaded' ? 'Image téléchargée.' : r === 'shared' ? 'Image partagée.' : null);
+                    } catch (e) {
+                      setNotice((e as Error).message);
+                    }
+                  }}
+                >
+                  <Icon name="board" /> Image de la position
+                </button>
+              </div>
+              {notice && <p className="muted small export-notice">{notice}</p>}
               <LevelPicker current={analysis.level} onPick={(l) => analyze(l)} />
             </>
           ) : (
@@ -211,6 +359,25 @@ export function ReviewScreen() {
       </aside>
     </div>
   );
+}
+
+interface ExploreMove {
+  san: string;
+  uci: string;
+  fen: string;
+}
+
+function pvToSan(fen: string, pv: string[], max: number): string[] {
+  const c = new Chess(fen);
+  const out: string[] = [];
+  for (const u of pv.slice(0, max)) {
+    try {
+      out.push(c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }).san);
+    } catch {
+      break;
+    }
+  }
+  return out;
 }
 
 function lastClock(moves: { color: 'w' | 'b'; clock?: number }[], ply: number, color: 'w' | 'b') {

@@ -34,3 +34,13 @@ Choix faits là où le cahier des charges laissait une marge, ou s'en écarte, a
 
 ## Tests de bout en bout
 - WebKit n'est pas installé dans l'environnement de développement : le parcours (import, revue, graphique, thème, PGN fautif, téléphone sans débordement) a été joué avec Chromium aux tailles iPad 1180 × 820, 820 × 1180 et 375 × 812.
+
+## Palier P1
+- **Nom** : l'app s'appelle Sharp Eye (choix d'Antoine). Nouvelle icône : un œil dont la pupille est un pion.
+- **12 thèmes** : tokens CSS dans `src/themes/themes.css` ; contraste WCAG AA (texte, texte secondaire, bouton d'accent) vérifié par `tests/themes.test.ts`. Néon : pièces soulignées d'un halo cyan, sinon les pièces noires disparaissent sur les cases sombres imposées. Jeux de pièces pixelisés (Rétro) et sons par thème : reportés.
+- **Explications** : règles déterministes (`src/analysis/explain.ts`) sur la position et les lignes du moteur, sans modèle de langue. Quand aucun motif n'est reconnu, une phrase générique est affichée.
+- **Import par lien chess.com** : chess.com n'a pas d'API publique par identifiant de partie ; l'app propose l'import par pseudo ou le collage du PGN. Les liens Lichess sont récupérés directement.
+- **Import par pseudo** : appels directs aux API publiques (CORS ouvert). Bloqués dans l'aperçu claude.ai (politique de sécurité du cadre), fonctionnels une fois l'app hébergée.
+- **Export PGN annoté** : chaque commentaire porte `[%se …]` (lignes du moteur, 8 demi-coups au plus). Réimporté, le PGN redonne exactement la même revue sans moteur (test automatique). Les lignes sont aussi limitées à 8 demi-coups dans la revue elle-même pour garantir l'égalité.
+- **Mode Explorer** : touche une pièce puis une case. La variante reste en mémoire le temps de l'exploration ; l'enregistrer dans l'arbre de la partie viendra avec le mode étude (P2).
+- **Partage** : feuille de partage iPad (Web Share API) si disponible, sinon téléchargement. Les deux sont bloqués dans l'aperçu claude.ai.

@@ -20,6 +20,11 @@ interface BoardProps {
   animateFrom?: string;
   coordinates: boolean;
   onSwipe?: (direction: 1 | -1) => void;
+  /** Toucher d'une case (sélection et coups du mode Explorer). */
+  onSquareTap?: (square: string) => void;
+  selected?: string;
+  /** Cases d'arrivée possibles de la pièce sélectionnée. */
+  targets?: string[];
 }
 
 const FILES = 'abcdefgh';
@@ -75,7 +80,7 @@ function ArrowShape({ arrow, flipped }: { arrow: Arrow; flipped: boolean }) {
   );
 }
 
-export function Board({ fen, flipped, lastMove, arrows = [], badge, animateFrom, coordinates, onSwipe }: BoardProps) {
+export function Board({ fen, flipped, lastMove, arrows = [], badge, animateFrom, coordinates, onSwipe, onSquareTap, selected, targets = [] }: BoardProps) {
   const pieces = useMemo(() => parseFen(fen), [fen]);
   const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
 
@@ -101,7 +106,7 @@ export function Board({ fen, flipped, lastMove, arrows = [], badge, animateFrom,
         const fileLight = (7 + i) % 2 === 0;
         const rankLight = i % 2 === 0;
         return (
-          <g key={`c${i}`} className="coord" aria-hidden="true">
+          <g key={`c${i}`} className="coord" aria-hidden="true" fontSize="0.2" fontWeight="700" fontFamily="system-ui, sans-serif">
             <text x={i + 0.94} y={7.95} textAnchor="end" fill={fileLight ? 'var(--coord-on-light)' : 'var(--coord-on-dark)'}>
               {file}
             </text>
@@ -130,14 +135,44 @@ export function Board({ fen, flipped, lastMove, arrows = [], badge, animateFrom,
   const onPointerDown = (e: React.PointerEvent) => {
     swipe.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
   };
-  const onPointerUp = (e: React.PointerEvent) => {
+  const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     const s = swipe.current;
     swipe.current = null;
-    if (!s || !onSwipe) return;
+    if (!s) return;
     const dx = e.clientX - s.x;
     const dy = e.clientY - s.y;
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipe(dx < 0 ? 1 : -1);
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      onSwipe?.(dx < 0 ? 1 : -1);
+      return;
+    }
+    if (onSquareTap && Math.hypot(dx, dy) < 12) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const col = Math.floor(((e.clientX - rect.left) / rect.width) * 8);
+      const row = Math.floor(((e.clientY - rect.top) / rect.height) * 8);
+      if (col < 0 || col > 7 || row < 0 || row > 7) return;
+      const file = flipped ? 7 - col : col;
+      const rank = flipped ? row : 7 - row;
+      onSquareTap(FILES[file] + (rank + 1));
+    }
   };
+
+  const marks = [
+    ...(selected
+      ? [(() => {
+          const [x, y] = squareXY(selected, flipped);
+          return <rect key="sel" x={x} y={y} width="1" height="1" fill="var(--last-move)" stroke="var(--accent)" strokeWidth="0.05" />;
+        })()]
+      : []),
+    ...targets.map((t) => {
+      const [x, y] = squareXY(t, flipped);
+      const occupied = pieces.some((p) => p.square === t);
+      return occupied ? (
+        <circle key={`t${t}`} cx={x + 0.5} cy={y + 0.5} r="0.45" fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="0.08" />
+      ) : (
+        <circle key={`t${t}`} cx={x + 0.5} cy={y + 0.5} r="0.15" fill="rgba(0,0,0,0.28)" />
+      );
+    }),
+  ];
 
   return (
     <svg
@@ -152,6 +187,7 @@ export function Board({ fen, flipped, lastMove, arrows = [], badge, animateFrom,
       <g>{squares}</g>
       {highlight}
       {coords}
+      {marks}
       <g>
         {pieces.map((p) => {
           const [x, y] = squareXY(p.square, flipped);

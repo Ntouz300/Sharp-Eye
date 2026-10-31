@@ -75,3 +75,226 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 18px rgba(0, 0, 0, 0.25);
   color-scheme: dark;
 }
+
+[data-theme='foret'] {
+  --bg: #13201a;
+  --surface: #1b2b22;
+  --surface-2: #233629;
+  --border: #34503d;
+  --text: #eef3e8;
+  --text-muted: #a9bba6;
+  --accent: #d8b25a;
+  --accent-text: #1b1405;
+  --sq-light: #E6E9C8;
+  --sq-dark: #6F8F4E;
+  --coord-on-light: #4d6a36;
+  --coord-on-dark: #eef0d8;
+  --last-move: rgba(216, 178, 90, 0.45);
+  --arrow-played: rgba(27, 43, 34, 0.7);
+  --arrow-best: rgba(216, 178, 90, 0.9);
+  --eval-white: #eef3e8;
+  --eval-black: #0b130e;
+  --graph-bg: #0b130e;
+  --graph-fill: #cfdcc0;
+  --font-accent: 'Iowan Old Style', 'Palatino', Georgia, serif;
+  color-scheme: dark;
+}
+
+[data-theme='marbre'] {
+  --bg: #f3f2ef;
+  --surface: #ffffff;
+  --surface-2: #ebe9e5;
+  --border: #d6d3cd;
+  --text: #1f1f22;
+  --text-muted: #5b5a56;
+  --accent: #3d3b38;
+  --accent-text: #ffffff;
+  --sq-light: #F2F0EC;
+  --sq-dark: #8C8A86;
+  --coord-on-light: #6e6c68;
+  --coord-on-dark: #f2f0ec;
+  --last-move: rgba(160, 140, 90, 0.4);
+  --arrow-played: rgba(40, 40, 44, 0.65);
+  --arrow-best: rgba(40, 140, 80, 0.85);
+  --eval-white: #ffffff;
+  --eval-black: #2a2a2d;
+  --graph-bg: #2a2a2d;
+  --graph-fill: #f2f0ec;
+  --font-accent: 'Didot', 'Bodoni 72', Georgia, serif;
+  color-scheme: light;
+}
+
+[data-theme='ocean'] {
+  --bg: #eef6f7;
+  --surface: #fbfefe;
+  --surface-2: #e1eef0;
+  --border: #c4dade;
+  --text: #10303a;
+  --text-muted: #45646c;
+  --accent: #0f6e83;
+  --accent-text: #ffffff;
+  --sq-light: #E8F1F2;
+  --sq-dark: #4F8FA0;
+  --coord-on-light: #3f7686;
+  --coord-on-dark: #e8f1f2;
+  --last-move: rgba(232, 196, 120, 0.55);
+  --arrow-played: rgba(16, 48, 58, 0.6);
+  --arrow-best: rgba(20, 150, 110, 0.9);
+  --eval-white: #fbfefe;
+  --eval-black: #12323c;
+  --graph-bg: #12323c;
+  --graph-fill: #d9edf0;
+  --font-accent: 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+[data-theme='couchant'] {
+  --bg: #2a1622;
+  --surface: #36202c;
+  --surface-2: #452a37;
+  --border: #5e3a4a;
+  --text: #fbeee3;
+  --text-muted: #d4b3ad;
+  --accent: #f59e5b;
+  --accent-text: #2a1206;
+  --sq-light: #F7DCC0;
+  --sq-dark: #C0646A;
+  --coord-on-light: #a5525a;
+  --coord-on-dark: #fbe6d2;
+  --last-move: rgba(245, 158, 91, 0.45);
+  --arrow-played: rgba(42, 22, 34, 0.65);
+  --arrow-best: rgba(250, 210, 120, 0.95);
+  --eval-white: #fbeee3;
+  --eval-black: #1a0c14;
+  --graph-bg: #1a0c14;
+  --graph-fill: #f3c9a6;
+  --font-accent: 'Futura', 'Avenir Next', system-ui, sans-serif;
+  --bg-image: linear-gradient(160deg, #3a1a2e 0%, #2a1622 45%, #3b1d17 100%);
+  color-scheme: dark;
+}
+
+[data-theme='neon'] {
+  --bg: #07070f;
+  --surface: #11121f;
+  --surface-2: #1a1b2e;
+  --border: #3a2f5c;
+  --text: #f2f0ff;
+  --text-muted: #b4add6;
+  --accent: #ff3bd8;
+  --accent-text: #12000f;
+  --sq-light: #2B2F48;
+  --sq-dark: #1A1D30;
+  --coord-on-light: #7f86c9;
+  --coord-on-dark: #a6abe6;
+  --last-move: rgba(0, 240, 255, 0.28);
+  --arrow-played: rgba(0, 240, 255, 0.75);
+  --arrow-best: rgba(255, 59, 216, 0.9);
+  --eval-white: #f2f0ff;
+  --eval-black: #000000;
+  --graph-bg: #000000;
+  --graph-fill: #7a55d6;
+  --font-accent: 'Orbitron', 'Avenir Next', system-ui, sans-serif;
+  --board-ring: 0 0 0 2px #ff3bd8, 0 0 18px rgba(255, 59, 216, 0.55);
+  --piece-filter: drop-shadow(0 0 0.04px #00f0ff) drop-shadow(0 0 0.02px #00f0ff);
+  color-scheme: dark;
+}
+
+[data-theme='washi'] {
+  --bg: #f4eee1;
+  --surface: #fbf8f0;
+  --surface-2: #ece4d2;
+  --border: #d8cdb5;
+  --text: #1b1a17;
+  --text-muted: #5d564a;
+  --accent: #b8322a;
+  --accent-text: #ffffff;
+  --sq-light: #F4EEE1;
+  --sq-dark: #A99E8A;
+  --coord-on-light: #857a66;
+  --coord-on-dark: #f6f1e6;
+  --last-move: rgba(184, 50, 42, 0.25);
+  --arrow-played: rgba(27, 26, 23, 0.65);
+  --arrow-best: rgba(184, 50, 42, 0.85);
+  --eval-white: #fbf8f0;
+  --eval-black: #1b1a17;
+  --graph-bg: #1b1a17;
+  --graph-fill: #ece4d2;
+  --font-accent: 'Hiragino Mincho ProN', 'Yu Mincho', 'Songti SC', Georgia, serif;
+  color-scheme: light;
+}
+
+[data-theme='retro'] {
+  --bg: #0f1a0b;
+  --surface: #1a2a12;
+  --surface-2: #243819;
+  --border: #3f5f2a;
+  --text: #e3f0c8;
+  --text-muted: #a9c08a;
+  --accent: #c4cfa1;
+  --accent-text: #0f1a0b;
+  --sq-light: #C4CFA1;
+  --sq-dark: #6B8F3A;
+  --coord-on-light: #58772e;
+  --coord-on-dark: #e3eccb;
+  --last-move: rgba(240, 220, 90, 0.45);
+  --arrow-played: rgba(15, 26, 11, 0.7);
+  --arrow-best: rgba(240, 220, 90, 0.95);
+  --eval-white: #e3f0c8;
+  --eval-black: #081005;
+  --graph-bg: #081005;
+  --graph-fill: #9bbc0f;
+  --font-accent: 'Courier New', ui-monospace, monospace;
+  --radius: 0px;
+  color-scheme: dark;
+}
+
+[data-theme='glace'] {
+  --bg: #e8f2fa;
+  --surface: #f8fbfe;
+  --surface-2: #e3eef7;
+  --border: #c9dbea;
+  --text: #102233;
+  --text-muted: #4a6176;
+  --accent: #2f6f9f;
+  --accent-text: #ffffff;
+  --sq-light: #EAF4FB;
+  --sq-dark: #9DBAD3;
+  --coord-on-light: #6f8fab;
+  --coord-on-dark: #f4f9fd;
+  --last-move: rgba(120, 190, 240, 0.45);
+  --arrow-played: rgba(16, 34, 51, 0.55);
+  --arrow-best: rgba(30, 150, 120, 0.85);
+  --eval-white: #ffffff;
+  --eval-black: #1b3247;
+  --graph-bg: #1b3247;
+  --graph-fill: #dcebf7;
+  --font-accent: 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --bg-image: radial-gradient(circle at 15% 10%, #ffffff 0%, transparent 40%), radial-gradient(circle at 90% 90%, #d3e6f5 0%, transparent 45%);
+  --surface-blur: blur(14px);
+  color-scheme: light;
+}
+
+[data-theme='contraste'] {
+  --bg: #000000;
+  --surface: #000000;
+  --surface-2: #1a1a1a;
+  --border: #ffffff;
+  --text: #ffffff;
+  --text-muted: #e6e6e6;
+  --accent: #ffd400;
+  --accent-text: #000000;
+  --sq-light: #FFFFFF;
+  --sq-dark: #5A5A5A;
+  --coord-on-light: #000000;
+  --coord-on-dark: #ffffff;
+  --last-move: rgba(255, 212, 0, 0.55);
+  --arrow-played: rgba(255, 212, 0, 0.9);
+  --arrow-best: rgba(0, 220, 255, 0.95);
+  --eval-white: #ffffff;
+  --eval-black: #000000;
+  --graph-bg: #000000;
+  --graph-fill: #ffffff;
+  --font-accent: system-ui, sans-serif;
+  --focus-width: 4px;
+  color-scheme: dark;
+}

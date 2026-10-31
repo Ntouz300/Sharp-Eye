@@ -66,7 +66,7 @@ export function Help() {
       <section className="settings-card">
         <h2>À propos</h2>
         <p className="small muted">
-          Échiquier Lucide est un logiciel libre (GPL 3). Moteur : Stockfish 18 (GPL 3) via stockfish.js. Pièces : jeu « cburnett » de Colin M. L. Burnett
+          Sharp Eye est un logiciel libre (GPL 3). Moteur : Stockfish 18 (GPL 3) via stockfish.js. Pièces : jeu « cburnett » de Colin M. L. Burnett
           (GPL 2+ / CC BY-SA 3.0 / BSD). Ouvertures : lichess-org/chess-openings (CC0). Toutes tes parties restent sur ton appareil.
         </p>
       </section>

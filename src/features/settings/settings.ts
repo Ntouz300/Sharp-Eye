@@ -12,7 +12,7 @@ export interface Settings {
   animations: boolean;
 }
 
-const KEY = 'echiquier-lucide:settings';
+const KEY = 'sharp-eye:settings';
 const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true };
 
 function load(): Settings {

@@ -16,7 +16,7 @@ const sizes = [
 ];
 for (const [name, size, maskable] of sizes) {
   // Icône « maskable » : fond plein jusqu'aux bords et motif réduit dans la zone sûre.
-  const inner = maskable ? `<div style="width:${size}px;height:${size}px;background:#8A4B1E;display:grid;place-items:center">${svg.replace('<svg', `<svg width="${size * 0.8}" height="${size * 0.8}"`).replace('rx="112"', 'rx="0"')}</div>` : svg.replace('<svg', `<svg width="${size}" height="${size}"`).replace(maskable ? '' : 'rx="112"', size === 180 ? 'rx="0"' : 'rx="112"');
+  const inner = maskable ? `<div style="width:${size}px;height:${size}px;background:#0B1626;display:grid;place-items:center">${svg.replace('<svg', `<svg width="${size * 0.8}" height="${size * 0.8}"`).replace('rx="112"', 'rx="0"')}</div>` : svg.replace('<svg', `<svg width="${size}" height="${size}"`).replace(maskable ? '' : 'rx="112"', size === 180 ? 'rx="0"' : 'rx="112"');
   await page.setViewportSize({ width: size, height: size });
   await page.setContent(`<html><body style="margin:0;background:transparent">${inner}</body></html>`);
   await page.screenshot({ path: `public/icons/${name}`, omitBackground: true });
