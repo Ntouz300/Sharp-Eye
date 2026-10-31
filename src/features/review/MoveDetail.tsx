@@ -1,3 +1,4 @@
+import { frenchName } from '../theory/names';
 import type { MoveAnalysis } from '../../analysis/analyzeGame';
 import { LABEL_INFO, REVIEW_LABELS } from '../../analysis/classify';
 import { formatScore } from '../../analysis/winPercent';
@@ -15,7 +16,15 @@ const PRAISE: Partial<Record<string, string>> = {
 };
 
 /** Encadré du coup affiché : étiquette, évaluation avant/après, meilleur coup et ligne du moteur. */
-export function MoveDetail({ move, analysis }: { move?: MoveNode; analysis?: MoveAnalysis }) {
+/** Ouverture précise en tête du commentaire : sur les coups théoriques et le premier coup hors théorie. */
+export function openingLine(opening: { eco: string; name: string } | undefined, label: string | undefined, leftBook: boolean): string | null {
+  if (!opening) return null;
+  if (label === 'book') return `${frenchName(opening.name)} (${opening.eco})`;
+  if (leftBook) return `Sortie de la théorie : ${frenchName(opening.name)} (${opening.eco})`;
+  return null;
+}
+
+export function MoveDetail({ move, analysis, opening }: { move?: MoveNode; analysis?: MoveAnalysis; opening?: string | null }) {
   const notation = useSettings((s) => s.notation);
   if (!move) return <div className="move-detail muted">Position de départ. Avance d'un coup avec → ou en glissant sur l'échiquier.</div>;
   const san = `${move.moveNumber}${move.color === 'w' ? '.' : '...'} ${displaySan(move.san, notation)}`;
@@ -34,6 +43,11 @@ export function MoveDetail({ move, analysis }: { move?: MoveNode; analysis?: Mov
           {formatScore(analysis.scoreBefore)} → {formatScore(analysis.scoreAfter)}
         </span>
       </div>
+      {opening && (
+        <p className="detail-opening" data-testid="detail-opening">
+          {opening}
+        </p>
+      )}
       {PRAISE[analysis.label] && <p className="detail-text">{PRAISE[analysis.label]}</p>}
       {analysis.explanation && <p className="detail-text explanation">{analysis.explanation}</p>}
       {!analysis.playedIsBest && analysis.bestSan && analysis.label !== 'book' && analysis.label !== 'forced' && (

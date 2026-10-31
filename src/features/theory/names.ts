@@ -1,6 +1,7 @@
 /** Noms des variantes de la base Lichess (en anglais) rendus en français pour l'onglet Théorie. */
 const FAMILIES: [RegExp, string][] = [
   [/^Vienna Game/, 'Partie viennoise'],
+  [/^Vienna Gambit/, 'Gambit viennois'],
   [/^Scotch Game/, 'Partie écossaise'],
   [/^Italian Game/, 'Partie italienne'],
   [/^Ruy Lopez/, 'Partie espagnole'],
@@ -57,13 +58,20 @@ const WORDS: [RegExp, string][] = [
 ];
 
 export function frenchName(name: string): string {
-  const fam = FAMILIES.find(([re]) => re.test(name));
-  if (!fam) return name;
-  const rest = name.includes(':') ? name.slice(name.indexOf(':') + 1).trim() : '';
+  const fam: [RegExp, string] | undefined = FAMILIES.find(([re]) => re.test(name)) ?? (name.includes(':') ? ([/./, name.slice(0, name.indexOf(':'))] as [RegExp, string]) : undefined);
+  if (!fam) {
+    // Famille sans traduction : « Philidor Defense » → « Défense Philidor ».
+    const suffix = SUFFIXES.find(([re]) => re.test(name));
+    const out = suffix ? name.replace(suffix[0], suffix[1]) : name;
+    return out.charAt(0).toUpperCase() + out.slice(1);
+  }
+  const sep = name.includes(':') ? name.indexOf(':') : fam[0].test(name) && name.includes(', ') ? name.indexOf(',') : -1;
+  const rest = sep >= 0 ? name.slice(sep + 1).trim() : '';
   const sub = rest
     .split(', ')
     .map((part) => {
       for (const [re, fr] of WORDS) if (re.source.includes(' ') && re.test(part)) return part.replace(re, fr);
+      if (part.startsWith('with ')) return `avec ${frenchName(`X: ${part.slice(5)}`).replace(/^X : /, '')}`;
       const suffix = SUFFIXES.find(([re]) => re.test(part));
       let out = suffix ? part.replace(suffix[0], suffix[1]) : part;
       for (const [re, fr] of WORDS) out = out.replace(re, fr);

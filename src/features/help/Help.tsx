@@ -98,6 +98,14 @@ export function Help() {
           <li><strong>Mes parties dans cette ouverture</strong> : nombre de parties et score, puis la bibliothèque filtrée sur l’ouverture.</li>
         </ul>
       </section>
+      <section className="settings-card" id="exploration">
+        <h2>Revue : ouverture et exploration</h2>
+        <ul className="month-notes">
+          <li><strong>Ouverture</strong> : le commentaire du coup commence par le nom précis de l’ouverture (par exemple « Caro-Kann, attaque Hillbilly (B10) »), puis indique le coup où la partie sort de la théorie.</li>
+          <li><strong>Essayer un autre coup</strong> : touche une pièce sur l’échiquier de la revue et joue un coup. Il est évalué et classé comme les coups de la partie, avec le meilleur coup, la suite du moteur et la comparaison avec ton coup de la partie. Tu peux enchaîner plusieurs coups, en annuler un, puis « Revenir à la partie ».</li>
+          <li><strong>Ta partie ne change pas</strong> : les essais ne sont jamais enregistrés, ni dans la partie, ni dans l’historique, ni dans les statistiques.</li>
+        </ul>
+      </section>
       <section className="settings-card" id="voix">
         <h2>Voix de la narration</h2>
         <p>La narration dit le coup, son classement et une raison courte : « Cavalier f3. Imprécision. Mieux valait d4, qui prend le centre. » Le numéro du coup n’est pas lu, et les bons coups ne sont pas commentés, sauf les coups brillants, clés ou excellents.</p>
