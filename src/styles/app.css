@@ -2110,8 +2110,8 @@ p {
   gap: 16px;
   padding: 8px 16px;
   overflow: hidden;
-  /* Bandeaux joueurs (2 × 24), graphique mince (36), espaces et marges : 112 px. */
-  --board: min(calc(100dvh - 112px), calc(100vw - 372px));
+  /* Bandeaux joueurs (2 × 24), graphique mince, espaces et marges (76 px). */
+  --board: min(calc(100dvh - 76px - var(--graph-h)), calc(100vw - 372px));
 }
 
 .board-zone {
@@ -2145,10 +2145,55 @@ p {
 .slim-graph .eval-graph {
   padding: 0;
   background: none;
+  height: auto;
 }
 
 .slim-graph .eval-graph svg {
-  height: 36px;
+  height: var(--graph-h);
+}
+
+/* Réglages « Taille des flèches » et « Taille du graphique ». */
+:root {
+  --nav-btn: 44px;
+  --graph-h: 36px;
+}
+
+:root[data-nav-size='large'] {
+  --nav-btn: 60px;
+}
+
+:root[data-nav-size='xl'] {
+  --nav-btn: 76px;
+}
+
+:root[data-graph-size='large'] {
+  --graph-h: 72px;
+}
+
+:root[data-graph-size='xl'] {
+  --graph-h: 120px;
+}
+
+.move-nav .icon-btn {
+  width: var(--nav-btn);
+  height: var(--nav-btn);
+  border-radius: calc(var(--nav-btn) / 3.5);
+}
+
+.move-nav .icon-btn svg {
+  width: calc(var(--nav-btn) * 0.5);
+  height: calc(var(--nav-btn) * 0.5);
+}
+
+.move-nav .icon-btn.play {
+  width: calc(var(--nav-btn) * 1.2);
+}
+
+.move-nav .error-next {
+  min-height: var(--nav-btn);
+  min-width: 0;
+  line-height: 1.15;
+  text-align: left;
 }
 
 .slim-graph .time-legend,
@@ -2367,11 +2412,12 @@ body.presenting .tabbar {
 @media (max-width: 999px), (orientation: portrait) {
   .moves-view {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    grid-template-rows: none;
+    grid-auto-rows: max-content;
     overflow-y: auto;
     align-content: start;
     padding: 0 8px 8px;
-    --board: min(calc(100vw - 40px), calc(100dvh - 330px), 760px);
+    --board: min(calc(100vw - 40px), calc(100dvh - 250px - var(--graph-h) - var(--nav-btn)), 760px);
   }
 
   .move-panel {
@@ -2396,6 +2442,7 @@ body.presenting .tabbar {
   .move-card {
     order: 1;
     overflow: visible;
+    min-height: auto;
   }
 
   .deep-btn {
@@ -2466,4 +2513,30 @@ body.presenting .tabbar {
   padding: 0;
   max-width: none;
   width: 100%;
+}
+
+/* Analyse groupée : nombre de parties récentes */
+.count-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: var(--fs-s);
+  color: var(--text-muted);
+}
+
+.count-input input {
+  width: 96px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-m);
+  padding: 0 12px;
+}
+
+.batch-scope {
+  margin: 0;
 }
