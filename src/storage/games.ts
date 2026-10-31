@@ -32,6 +32,8 @@ function toStored(g: ParsedGame): StoredGame {
     opening: h.Opening ?? h.ECOUrl?.split('/openings/')[1]?.replace(/-/g, ' '),
     link: h.Link ?? (h.Site?.startsWith('http') ? h.Site : undefined),
     plies: g.moves.length,
+    firstMoves: g.moves.slice(0, 12).map((m) => m.san).join(' '),
+    termination: h.Termination,
     movesKey,
     importedAt: Date.now(),
   };

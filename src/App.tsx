@@ -6,10 +6,14 @@ import { useReview, type View } from './features/review/store';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { applyTheme, useSettings } from './features/settings/settings';
 import { Icon } from './ui/Icon';
+import { PuzzlesScreen } from './features/puzzles/PuzzlesScreen';
+import { StatsScreen } from './features/stats/StatsScreen';
 
 const NAV: { id: View; label: string; icon: string }[] = [
   { id: 'library', label: 'Bibliothèque', icon: 'library' },
   { id: 'review', label: 'Revue', icon: 'board' },
+  { id: 'puzzles', label: 'Puzzles', icon: 'puzzle' },
+  { id: 'stats', label: 'Progrès', icon: 'chart' },
   { id: 'settings', label: 'Réglages', icon: 'settings' },
   { id: 'help', label: 'Aide', icon: 'help' },
 ];
@@ -18,6 +22,7 @@ export function App() {
   const view = useReview((s) => s.view);
   const setView = useReview((s) => s.setView);
   const hasGame = useReview((s) => !!s.game);
+  const puzzleTheme = useReview((s) => s.puzzleTheme);
   const theme = useSettings((s) => s.theme);
   const animations = useSettings((s) => s.animations);
 
@@ -52,6 +57,8 @@ export function App() {
       <main className="content">
         {view === 'library' && <Library />}
         {view === 'review' && <ReviewScreen />}
+        {view === 'puzzles' && <PuzzlesScreen key={puzzleTheme} initialTheme={puzzleTheme} />}
+        {view === 'stats' && <StatsScreen />}
         {view === 'settings' && <SettingsScreen />}
         {view === 'help' && <Help />}
       </main>

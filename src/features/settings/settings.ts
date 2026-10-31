@@ -10,10 +10,12 @@ export interface Settings {
   level: ReviewLevel;
   coordinates: boolean;
   animations: boolean;
+  /** Pseudos de l'utilisateur (chess.com, Lichess…), pour ses statistiques et ses puzzles. */
+  usernames: string[];
 }
 
 const KEY = 'sharp-eye:settings';
-const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true };
+const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [] };
 
 function load(): Settings {
   try {

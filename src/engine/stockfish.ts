@@ -27,9 +27,21 @@ export class StockfishWorker implements Engine {
     this.driver.stop();
   }
 
+  async bestMove(fen: string, elo: number): Promise<string | null> {
+    await this.initialized;
+    return this.driver.bestMove(fen, elo);
+  }
+
   terminate() {
     this.worker.terminate();
   }
+}
+
+let opponent: StockfishWorker | null = null;
+/** Second moteur, réservé au jeu contre l'ordinateur (réglages de force indépendants de l'analyse). */
+export function getOpponentEngine(): StockfishWorker {
+  if (!opponent) opponent = new StockfishWorker();
+  return opponent;
 }
 
 let shared: StockfishWorker | null = null;

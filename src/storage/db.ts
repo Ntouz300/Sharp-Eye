@@ -18,6 +18,9 @@ export interface StoredGame {
   opening?: string;
   link?: string;
   plies: number;
+  /** 12 premiers demi-coups en SAN, séparés par des espaces (répertoire d'ouvertures). */
+  firstMoves?: string;
+  termination?: string;
   /** Empreinte des coups (détection des doublons). */
   movesKey: string;
   importedAt: number;

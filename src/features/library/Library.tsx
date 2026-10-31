@@ -13,6 +13,7 @@ import { useSettings } from '../settings/settings';
 import { lichessGamePgn, parseGameLink } from './online';
 import { networkMessage, OnlineImport } from './OnlineImport';
 import { SAMPLE_PGN } from './sample';
+import { syncPuzzles } from '../puzzles/puzzles';
 
 const ROW_H = 68;
 
@@ -97,6 +98,7 @@ export function Library() {
         const parsed = parseGame(g.source);
         const analysis = await analyzeGame(parsed, { level, engine: getEngine(), cache: evalCache });
         await db.analyses.put({ key: `${g.id}|${level}`, gameId: g.id, analysis });
+        await syncPuzzles(g.id, parsed, analysis, useSettings.getState().usernames);
         await db.games.update(g.id, {
           accuracyWhite: analysis.white.accuracy ?? undefined,
           accuracyBlack: analysis.black.accuracy ?? undefined,

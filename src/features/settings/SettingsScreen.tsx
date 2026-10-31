@@ -1,9 +1,14 @@
+import { useRef, useState } from 'react';
 import { REVIEW_LEVELS, type ReviewLevel } from '../../analysis/config';
+import { exportBackup, importBackup } from '../../storage/backup';
+import { shareOrDownload } from '../../ui/share';
 import { THEMES } from '../../themes/themes';
 import { applyTheme, useSettings, type Notation } from './settings';
 
 export function SettingsScreen() {
   const s = useSettings();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [backupMsg, setBackupMsg] = useState<string | null>(null);
   return (
     <div className="settings">
       <section className="settings-card">
@@ -27,6 +32,22 @@ export function SettingsScreen() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="settings-card">
+        <h2>Mes pseudos</h2>
+        <p className="muted small">Sépare-les par des virgules. Ils servent à reconnaître tes parties pour les statistiques, les puzzles et le répertoire.</p>
+        <input
+          id="usernames"
+          className="text-input"
+          type="text"
+          defaultValue={s.usernames.join(', ')}
+          onBlur={(e) => s.set({ usernames: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })}
+          placeholder="ex. antoine_echecs, antoine-lichess"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+        />
       </section>
 
       <section className="settings-card">
@@ -63,6 +84,46 @@ export function SettingsScreen() {
           <input type="checkbox" checked={s.animations} onChange={(e) => s.set({ animations: e.target.checked })} />
           Animations (respecte aussi le réglage « Réduire les animations » de l'iPad)
         </label>
+      </section>
+      <section className="settings-card">
+        <h2>Sauvegarde</h2>
+        <p className="muted small">Toutes tes données restent sur cet appareil. Sauvegarde-les dans un fichier (iCloud Drive, Fichiers) pour les retrouver sur un autre appareil.</p>
+        <div className="import-actions">
+          <button
+            type="button"
+            className="ghost"
+            onClick={async () => {
+              const { set: _ignore, ...settings } = useSettings.getState();
+              const blob = await exportBackup(settings);
+              const r = await shareOrDownload(blob, `sharp-eye-${new Date().toISOString().slice(0, 10)}.json`, 'Sauvegarde Sharp Eye');
+              setBackupMsg(r === 'cancelled' ? null : 'Sauvegarde créée.');
+            }}
+          >
+            Sauvegarder mes données
+          </button>
+          <button type="button" className="ghost" onClick={() => fileRef.current?.click()}>
+            Restaurer une sauvegarde
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              try {
+                const r = await importBackup(await f.text());
+                if (r.settings) s.set(r.settings as Partial<typeof s>);
+                setBackupMsg(`Restauré : ${r.games} parties, ${r.analyses} analyses, ${r.puzzles} puzzles.`);
+              } catch (err) {
+                setBackupMsg((err as Error).message);
+              }
+            }}
+          />
+        </div>
+        {backupMsg && <p className="small" role="status">{backupMsg}</p>}
       </section>
     </div>
   );

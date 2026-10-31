@@ -7,8 +7,9 @@ import type { ParsedGame } from '../../pgn/types';
 import { db, evalCache, type StoredGame } from '../../storage/db';
 import { useSettings } from '../settings/settings';
 import { restoreAnalysis } from '../../analysis/pgnExport';
+import { syncPuzzles } from '../puzzles/puzzles';
 
-export type View = 'library' | 'review' | 'settings' | 'help';
+export type View = 'library' | 'review' | 'puzzles' | 'stats' | 'settings' | 'help';
 
 interface ReviewState {
   view: View;
@@ -23,7 +24,9 @@ interface ReviewState {
   autoplay: boolean;
   /** Filtre des boutons « Erreur suivante / précédente ». */
   errorFilter: 'all' | 'w' | 'b';
-  setView: (v: View) => void;
+  /** Thème de puzzles choisi depuis le profil des faiblesses. */
+  puzzleTheme?: string;
+  setView: (v: View, puzzleTheme?: string) => void;
   openGame: (stored: StoredGame) => Promise<void>;
   analyze: (level: ReviewLevel) => Promise<void>;
   cancel: () => void;
@@ -48,7 +51,7 @@ export const useReview = create<ReviewState>((set, get) => ({
   autoplay: false,
   errorFilter: 'all',
 
-  setView: (view) => set({ view }),
+  setView: (view, puzzleTheme) => set({ view, puzzleTheme }),
 
   openGame: async (stored) => {
     get().cancel();
@@ -71,6 +74,7 @@ export const useReview = create<ReviewState>((set, get) => ({
     const restored = restoreAnalysis(game);
     if (restored) {
       set({ analysis: restored.analysis });
+      await syncPuzzles(stored.id, game, restored.analysis, useSettings.getState().usernames);
       await db.analyses.put({ key: `${stored.id}|${restored.analysis.level}`, gameId: stored.id, analysis: restored.analysis });
       await db.games.update(stored.id, {
         accuracyWhite: restored.analysis.white.accuracy ?? undefined,
@@ -103,6 +107,7 @@ export const useReview = create<ReviewState>((set, get) => ({
       if (controller !== ctrl) return;
       set({ analysis, progress: null });
       await db.analyses.put({ key: `${stored.id}|${level}`, gameId: stored.id, analysis });
+      await syncPuzzles(stored.id, game, analysis, useSettings.getState().usernames);
       await db.games.update(stored.id, {
         accuracyWhite: analysis.white.accuracy ?? undefined,
         accuracyBlack: analysis.black.accuracy ?? undefined,

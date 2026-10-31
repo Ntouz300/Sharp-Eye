@@ -19,6 +19,7 @@ import { MoveList } from './MoveList';
 import { useReview } from './store';
 import { Summary } from './Summary';
 import { TimeGraph } from './TimeGraph';
+import { GuessMode, PlayMode } from './TrainingModes';
 
 type Tab = 'summary' | 'moves';
 
@@ -30,6 +31,7 @@ export function ReviewScreen() {
   const [speed, setSpeed] = useState(1.2);
   const [graph, setGraph] = useState<'eval' | 'time'>('eval');
   const [notice, setNotice] = useState<string | null>(null);
+  const [mode, setMode] = useState<null | 'guess-w' | 'guess-b' | 'play'>(null);
   // Anime la pièce seulement quand on avance d'un coup ; l'état reste stable pendant les mises à jour de l'analyse.
   const anim = useRef({ ply, forward: false });
   if (anim.current.ply !== ply) anim.current = { ply, forward: ply === anim.current.ply + 1 };
@@ -102,6 +104,7 @@ export function ReviewScreen() {
   // Clavier : ← → (coup), ↑ ↓ (début/fin), F (retourner), espace (lecture), 1 à 3 (meilleurs coups)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (mode) return;
       const target = e.target as HTMLElement;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
       if (e.key === 'ArrowRight') step(1);
@@ -117,7 +120,7 @@ export function ReviewScreen() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [step, goTo, flip, setAutoplay]);
+  }, [step, goTo, flip, setAutoplay, mode]);
 
 
   if (!game || !stored) return <div className="empty-state">Choisis une partie dans la bibliothèque.</div>;
@@ -144,6 +147,21 @@ export function ReviewScreen() {
   const h = game.headers;
   const top = flipped ? { name: h.White, elo: h.WhiteElo, clock: lastClock(game.moves, ply, 'w') } : { name: h.Black, elo: h.BlackElo, clock: lastClock(game.moves, ply, 'b') };
   const bottom = flipped ? { name: h.Black, elo: h.BlackElo, clock: lastClock(game.moves, ply, 'b') } : { name: h.White, elo: h.WhiteElo, clock: lastClock(game.moves, ply, 'w') };
+
+  if (mode === 'play') return <PlayMode startFen={fen} onExit={() => setMode(null)} />;
+  if (mode === 'guess-w' || mode === 'guess-b')
+    return (
+      <GuessMode
+        game={game}
+        analysis={analysis}
+        startPly={ply}
+        side={mode === 'guess-w' ? 'w' : 'b'}
+        onExit={(p) => {
+          setMode(null);
+          goTo(p);
+        }}
+      />
+    );
 
   return (
     <div className="review">
@@ -304,6 +322,15 @@ export function ReviewScreen() {
           </select>
           <button type="button" className="ghost" onClick={() => jumpError(1)} disabled={!analysis}>
             Erreur suivante <Icon name="next" />
+          </button>
+        </div>
+
+        <div className="training-row">
+          <button type="button" className="ghost" onClick={() => { setExplore([]); setMode(flipped ? 'guess-b' : 'guess-w'); }}>
+            Devine le coup ({flipped ? 'noirs' : 'blancs'})
+          </button>
+          <button type="button" className="ghost" onClick={() => setMode('play')}>
+            Rejouer contre le moteur
           </button>
         </div>
 

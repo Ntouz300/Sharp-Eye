@@ -15,6 +15,9 @@ const PATHS: Record<string, string> = {
   star: 'M12 3.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6-5-2.7-5 2.7 1-5.6-4.1-3.9 5.6-.7z',
   search: 'M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z M15.5 15.5 20 20',
   close: 'M6 6l12 12 M18 6 6 18',
+  puzzle: 'M5 9V5h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4h-4a2 2 0 1 0-4 0H5v-4a2 2 0 1 0 0-4z',
+  chart: 'M4 20h16 M7 16v-5 M12 16V7 M17 16v-8',
+  download: 'M12 4v11 M7.5 10.5 12 15l4.5-4.5 M4 15v4h16v-4',
 };
 
 /** Icônes d'interface dessinées pour l'application (traits 24 × 24). */

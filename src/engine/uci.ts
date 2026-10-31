@@ -60,6 +60,42 @@ export class UciDriver {
   }
 
   /**
+   * Coup joué par le moteur à un niveau donné (800 à 2800 Elo). Au-dessus de 1320, force limitée officielle
+   * de Stockfish (UCI_Elo) ; en dessous, « Skill Level » bas et temps de réflexion réduit.
+   */
+  bestMove(fen: string, elo: number): Promise<string | null> {
+    const run = async () => {
+      const limited = elo >= 1320;
+      this.send('setoption name MultiPV value 1');
+      this.send(`setoption name UCI_LimitStrength value ${limited ? 'true' : 'false'}`);
+      if (limited) this.send(`setoption name UCI_Elo value ${Math.min(3190, elo)}`);
+      this.send(`setoption name Skill Level value ${limited ? 20 : Math.max(0, Math.round((elo - 800) / 130))}`);
+      await this.ready();
+      let best: string | null = null;
+      const done = new Promise<void>((resolve) => {
+        const l = (line: string) => {
+          if (line.startsWith('bestmove')) {
+            best = line.split(' ')[1] ?? null;
+            if (best === '(none)') best = null;
+            this.listeners.delete(l);
+            resolve();
+          }
+        };
+        this.listeners.add(l);
+      });
+      this.send(`position fen ${fen}`);
+      this.send(`go movetime ${limited ? 600 : 150}`);
+      await done;
+      this.send('setoption name UCI_LimitStrength value false');
+      this.send('setoption name Skill Level value 20');
+      return best;
+    };
+    const p = this.queue.then(run, run);
+    this.queue = p.catch(() => undefined);
+    return p;
+  }
+
+  /**
    * Analyse à profondeur fixe. Chaque position commence par « ucinewgame » (table de hachage vidée)
    * pour que le résultat ne dépende que de la position et de la profondeur : analyses reproductibles.
    */

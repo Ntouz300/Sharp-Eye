@@ -44,3 +44,12 @@ Choix faits là où le cahier des charges laissait une marge, ou s'en écarte, a
 - **Export PGN annoté** : chaque commentaire porte `[%se …]` (lignes du moteur, 8 demi-coups au plus). Réimporté, le PGN redonne exactement la même revue sans moteur (test automatique). Les lignes sont aussi limitées à 8 demi-coups dans la revue elle-même pour garantir l'égalité.
 - **Mode Explorer** : touche une pièce puis une case. La variante reste en mémoire le temps de l'exploration ; l'enregistrer dans l'arbre de la partie viendra avec le mode étude (P2).
 - **Partage** : feuille de partage iPad (Web Share API) si disponible, sinon téléchargement. Les deux sont bloqués dans l'aperçu claude.ai.
+
+## Palier P2
+
+- **Puzzles personnels** : chaque gaffe, erreur et occasion manquée des camps de l'utilisateur (pseudos des Réglages, sinon les deux camps) devient un puzzle. La solution est la ligne principale du moteur gardée dans l'analyse. Révision espacée simple : 1, 3, 7 puis 21 jours après une réussite, lendemain après un échec. Classement Glicko-1 avec un RD fixe de 80 pour le puzzle ; difficulté estimée par la perte de % de gain (une gaffe énorme est souvent plus facile à voir).
+- **Progrès** : précision par cadence et par phase, taux de chaque type de coup, répertoire en arbre (8 demi-coups) et faiblesses par thème tactique. Sans pseudo, l'app prend le nom le plus fréquent de la bibliothèque s'il apparaît au moins deux fois.
+- **Devine le coup** : 3 points pour le meilleur coup du moteur, sinon le coup proposé est évalué à profondeur 12 (2 points si la perte est de 2 % ou moins, 1 point jusqu'à 5 %).
+- **Rejouer contre le moteur** : `UCI_LimitStrength` / `UCI_Elo` à partir de 1320 Elo (minimum de Stockfish), `Skill Level` en dessous ; un second worker est utilisé pour ne pas bloquer la revue.
+- **Sauvegarde JSON** : parties, analyses, puzzles, classement et réglages ; le cache des évaluations est exclu (il se recalcule). Restaurer fusionne au lieu d'effacer.
+- **Reportés** : mode étude (chapitres annotés) et export PDF/GIF. L'export PGN annoté et l'image de la position couvrent le partage pour l'instant.
