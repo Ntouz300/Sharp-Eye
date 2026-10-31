@@ -13,7 +13,7 @@ import { syncPuzzles } from '../puzzles/puzzles';
 import { useBatch } from '../library/batch';
 
 /** Les quatre destinations de la barre d'onglets. La revue s'ouvre par-dessus. */
-export type Tab = 'games' | 'training' | 'progress' | 'profile';
+export type Tab = 'games' | 'training' | 'theory' | 'progress' | 'profile';
 /** Les trois temps de la revue : aperçu de la partie, coup par coup (avec la feuille Approfondir). */
 export type Stage = 'overview' | 'moves';
 export type TrainingMode = 'guess' | 'play' | null;
@@ -36,7 +36,10 @@ interface ReviewState {
   errorFilter: 'all' | 'w' | 'b';
   /** Thème de puzzles choisi depuis le profil des faiblesses. */
   puzzleTheme?: string;
+  /** Ouverture choisie depuis Théorie : la bibliothèque n'affiche que ses parties. */
+  libraryOpening?: string;
   setTab: (t: Tab, puzzleTheme?: string) => void;
+  openLibrary: (f: { opening?: string }) => void;
   setStage: (s: Stage) => void;
   setTrainingMode: (m: TrainingMode) => void;
   openGame: (stored: StoredGame, opts?: { stage?: Stage; ply?: number; mode?: TrainingMode }) => Promise<void>;
@@ -73,7 +76,8 @@ export const useReview = create<ReviewState>((set, get) => ({
   errorFilter: 'all',
   deepening: null,
 
-  setTab: (tab, puzzleTheme) => set({ tab, puzzleTheme, reviewOpen: false }),
+  setTab: (tab, puzzleTheme) => set({ tab, puzzleTheme, reviewOpen: false, libraryOpening: undefined }),
+  openLibrary: ({ opening }) => set({ tab: 'games', libraryOpening: opening, reviewOpen: false }),
   setStage: (stage) => set({ stage }),
   setTrainingMode: (trainingMode) => set({ trainingMode }),
 

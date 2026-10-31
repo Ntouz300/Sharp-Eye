@@ -2956,3 +2956,166 @@ body.presenting .tabbar {
     margin: 0 auto;
   }
 }
+
+/* ---------- Théorie ---------- */
+
+.theory-screen .search {
+  margin-top: 16px;
+}
+
+.theory-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.opening-tile {
+  min-height: 88px;
+}
+
+.line-chips {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.theory-screen .challenge-layout {
+  margin-top: 12px;
+}
+
+.theory-nav {
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.theory-moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.move-token {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  min-height: 32px;
+  padding: 0 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.move-token.has-note {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.move-token.now {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.theory-note {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+
+.next-moves {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.next-move {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: inherit;
+  font: inherit;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.next-move.in-line {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.my-games {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.opening-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.step-note {
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+}
+
+.step-note.note-wrong {
+  background: rgba(194, 58, 54, 0.12);
+}
+
+/* Barre d'onglets à 5 entrées : les libellés tiennent sans être coupés jusqu'à 360 px. */
+@media (max-width: 480px) {
+  .tab-btn {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .tab-label {
+    font-size: 10.5px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1000px) and (orientation: landscape) {
+  .theory-screen .challenge-layout {
+    grid-template-columns: minmax(0, min(calc(100dvh - 340px), 560px)) minmax(300px, 1fr);
+  }
+}
+
+@media (max-width: 999px), (orientation: portrait) {
+  .theory-screen .challenge-layout .puzzle-board {
+    max-width: min(100%, calc(100dvh - 380px));
+  }
+}
+
+/* iPad en portrait : l'échiquier et le panneau côte à côte, le commentaire reste visible. */
+@media (min-width: 700px) and (max-width: 999px) and (orientation: portrait) {
+  .challenge-layout,
+  .theory-screen .challenge-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  }
+
+  .challenge-layout .puzzle-board,
+  .theory-screen .challenge-layout .puzzle-board {
+    max-width: none;
+  }
+}
