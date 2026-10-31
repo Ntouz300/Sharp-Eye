@@ -161,3 +161,23 @@ describe('résumé de la combinaison', () => {
     expect(keyIdea({ fen: FORK, line: ['d5c7', 'e8d7', 'c7a8'], goal: 'material', gain: 5 })).toBe('Gagner une tour : fait une fourchette sur le roi et la tour.');
   });
 });
+
+describe('banque intégrée', () => {
+  it('compte au moins 300 défis valides de 2 à 5 coups, en moins de 1 Mo', async () => {
+    const { readFileSync, statSync } = await import('node:fs');
+    const { Chess } = await import('chess.js');
+    const bank = JSON.parse(readFileSync('src/features/puzzles/bank.json', 'utf8')) as { fen: string; line: string; goal: string; theme: string }[];
+    expect(bank.length).toBeGreaterThanOrEqual(300);
+    expect(statSync('src/features/puzzles/bank.json').size).toBeLessThan(1024 * 1024);
+    expect(new Set(bank.map((e) => e.theme)).size).toBeGreaterThanOrEqual(6);
+    for (const e of bank) {
+      const moves = e.line.split(' ');
+      expect(playerMoves(moves)).toBeGreaterThanOrEqual(2);
+      expect(playerMoves(moves)).toBeLessThanOrEqual(5);
+      expect(moves.length % 2).toBe(1);
+      const c = new Chess(e.fen);
+      for (const m of moves) c.move({ from: m.slice(0, 2), to: m.slice(2, 4), promotion: m[4] });
+      if (e.goal === 'mate') expect(c.isCheckmate()).toBe(true);
+    }
+  });
+});
