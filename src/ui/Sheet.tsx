@@ -1,11 +1,11 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
 /**
  * Feuille glissante : monte du bas sur téléphone et en portrait, se pose à droite en paysage large.
  * Elle se ferme par le bouton, la touche Échap ou un toucher sur le voile.
  */
-export function Sheet({ title, onClose, children, side = 'auto', className = '' }: { title: string; onClose: () => void; children: ReactNode; side?: 'auto' | 'bottom'; className?: string }) {
+export function Sheet({ title, onClose, children, side = 'auto', className = '', style }: { title: string; onClose: () => void; children: ReactNode; side?: 'auto' | 'bottom' | 'popover'; className?: string; style?: CSSProperties }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
@@ -25,7 +25,7 @@ export function Sheet({ title, onClose, children, side = 'auto', className = '' 
   return (
     <div className={`sheet-layer sheet-${side}`}>
       <div className="sheet-scrim" onClick={onClose} aria-hidden="true" />
-      <div className={`sheet ${className}`} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={ref}>
+      <div className={`sheet ${className}`} style={style} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={ref}>
         <div className="sheet-head">
           <h2>{title}</h2>
           <button type="button" className="icon-btn subtle" onClick={onClose} aria-label="Fermer">
@@ -48,10 +48,27 @@ export interface MenuItem {
   disabled?: boolean;
 }
 
-/** Menu « … » : liste d'actions rares, présentée comme une feuille. */
+let anchor: DOMRect | null = null;
+
+/** Retient le bouton qui ouvre un menu, pour l'ancrer à côté sur iPad en paysage. */
+export function rememberAnchor(el: Element) {
+  anchor = el.getBoundingClientRect();
+}
+
+/** Position du menu : panneau ancré sous le bouton en paysage large, feuille du bas sinon. */
+function popoverPlacement(): { side: 'bottom' | 'popover'; style?: CSSProperties } {
+  const a = anchor;
+  anchor = null;
+  if (!a || !window.matchMedia('(min-width: 1000px) and (orientation: landscape)').matches) return { side: 'bottom' };
+  const top = a.bottom + 8;
+  return { side: 'popover', style: { top, right: Math.max(12, window.innerWidth - a.right), maxHeight: `min(85dvh, calc(100dvh - ${top + 16}px))` } };
+}
+
+/** Menu « … » : liste d'actions rares, en 3 colonnes fixes (icône, libellé, valeur ou interrupteur). */
 export function MenuSheet({ title, groups, onClose }: { title: string; groups: MenuItem[][]; onClose: () => void }) {
+  const place = useRef(popoverPlacement()).current;
   return (
-    <Sheet title={title} onClose={onClose} side="bottom" className="menu-sheet">
+    <Sheet title={title} onClose={onClose} side={place.side} style={place.style} className="menu-sheet">
       {groups.map((items, g) => (
         <ul className="menu-group" key={g} role="menu">
           {items.map((it) => (
@@ -67,10 +84,12 @@ export function MenuSheet({ title, groups, onClose }: { title: string; groups: M
                   if (it.checked === undefined && it.value === undefined) onClose();
                 }}
               >
-                {it.icon && <Icon name={it.icon} />}
+                <span className="menu-icon">{it.icon && <Icon name={it.icon} />}</span>
                 <span className="menu-label">{it.label}</span>
-                {it.value && <span className="menu-value">{it.value}</span>}
-                {it.checked !== undefined && <span className={`switch ${it.checked ? 'on' : ''}`} aria-hidden="true" />}
+                <span className="menu-end">
+                  {it.value && <span className="menu-value">{it.value}</span>}
+                  {it.checked !== undefined && <span className={`switch ${it.checked ? 'on' : ''}`} aria-hidden="true" />}
+                </span>
               </button>
             </li>
           ))}

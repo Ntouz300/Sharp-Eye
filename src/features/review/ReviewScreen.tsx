@@ -1,7 +1,7 @@
 import { Chess, type Square } from 'chess.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { winWhite as winWhite_ } from '../../analysis/analyzeGame';
-import { LABEL_INFO, REVIEW_LABELS } from '../../analysis/classify';
+import { REVIEW_LABELS } from '../../analysis/classify';
 import { REVIEW_LEVELS, type ReviewLevel } from '../../analysis/config';
 import { exportAnnotatedPgn } from '../../analysis/pgnExport';
 import { formatScore } from '../../analysis/winPercent';
@@ -13,13 +13,14 @@ import type { ParsedGame } from '../../pgn/types';
 import { Icon } from '../../ui/Icon';
 import { displaySan } from '../../ui/notation';
 import { safeFilename, shareOrDownload } from '../../ui/share';
-import { MenuSheet, Sheet, type MenuItem } from '../../ui/Sheet';
+import { MenuSheet, rememberAnchor, Sheet, type MenuItem } from '../../ui/Sheet';
 import { useToast } from '../../ui/toast';
-import { speak, speechAvailable, spokenSan, stopSpeaking } from '../../ui/speech';
+import { speak, speechAvailable, stopSpeaking } from '../../ui/speech';
 import { useSettings } from '../settings/settings';
 import { EvalBar } from './EvalBar';
 import { EvalGraph } from './EvalGraph';
 import { MoveDetail } from './MoveDetail';
+import { narrationText } from './narration';
 import { MoveList } from './MoveList';
 import { DEEP_DEPTH, useReview } from './store';
 import { Summary } from './Summary';
@@ -98,7 +99,15 @@ function TopBar({ title, onBack, backLabel = 'Parties', onMore, subtitle }: { ti
         {subtitle && <span className="rv-title-sub">{subtitle}</span>}
       </div>
       {onMore ? (
-        <button type="button" className="icon-btn subtle" onClick={onMore} aria-label="Plus d’actions">
+        <button
+          type="button"
+          className="icon-btn subtle"
+          onClick={(e) => {
+            rememberAnchor(e.currentTarget);
+            onMore();
+          }}
+          aria-label="Plus d’actions"
+        >
           <Icon name="more" />
         </button>
       ) : (
@@ -183,53 +192,88 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
   const [presenting, setPresenting] = useState(false);
   const [menu, setMenu] = useState(false);
   const [deep, setDeep] = useState<DeepTab | null>(null);
-  const speech = useRef<Promise<void>>(Promise.resolve());
   const anim = useRef({ ply, forward: false });
   if (anim.current.ply !== ply) anim.current = { ply, forward: ply === anim.current.ply + 1 };
 
-  // Lecture automatique (avec la narration, le coup suivant attend la fin de la phrase).
+  // Narration : chaque passage sur un coup est lu une seule fois, avec l'analyse connue à ce moment-là
+  // (une mise à jour de l'analyse ne relit pas le coup). Une courte attente évite de lire les positions
+  // traversées en avançant vite ; changer de coup, couper la narration ou quitter coupe la phrase.
+  const analysisRef = useRef(analysis);
+  analysisRef.current = analysis;
+  /** Dernier coup dont la phrase a été lue jusqu'au bout pendant ce passage. */
+  const spokenPly = useRef(-1);
+  useEffect(() => {
+    spokenPly.current = -1;
+    if (!narration || ply === 0) return;
+    let cancelled = false;
+    let next = 0;
+    const wait = window.setTimeout(() => {
+      void speak(narrationText(game.moves[ply - 1], analysisRef.current?.moves[ply - 1])).then(() => {
+        if (cancelled) return;
+        spokenPly.current = ply;
+        // En lecture automatique, le coup suivant attend la fin de la phrase.
+        if (useReview.getState().autoplay) next = window.setTimeout(() => step(1), 500);
+      });
+    }, useReview.getState().autoplay ? 0 : 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(wait);
+      window.clearTimeout(next);
+      stopSpeaking();
+    };
+  }, [narration, ply, game, step]);
+
+  // Lecture automatique sans narration (ou position de départ) : un coup toutes les `speed` secondes.
   useEffect(() => {
     if (!autoplay) return;
     if (ply >= game.moves.length) {
       setAutoplay(false);
       return;
     }
-    let cancelled = false;
-    let t = 0;
-    void (narration ? speech.current : Promise.resolve()).then(() => {
-      if (!cancelled) t = window.setTimeout(() => step(1), narration ? 500 : speed * 1000);
-    });
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
+    // Avec la narration, c'est la fin de la phrase qui enchaîne, sauf si elle est déjà lue.
+    if (narration && ply > 0 && spokenPly.current !== ply) return;
+    const t = window.setTimeout(() => step(1), narration ? 500 : speed * 1000);
+    return () => window.clearTimeout(t);
   }, [autoplay, ply, game, speed, step, setAutoplay, narration]);
-
-  useEffect(() => {
-    if (!narration || ply === 0) return;
-    const m = game.moves[ply - 1];
-    const a = analysis?.moves[ply - 1];
-    const parts = [`${m.color === 'w' ? m.moveNumber + '.' : ''} ${spokenSan(m.san)}`];
-    if (a) {
-      parts.push(LABEL_INFO[a.label].name);
-      if (a.explanation && !['best', 'book', 'forced'].includes(a.label)) parts.push(a.explanation);
-    }
-    speech.current = speak(parts.join('. '));
-  }, [narration, ply, game, analysis]);
   useEffect(() => () => stopSpeaking(), []);
 
+
+  // Présentation : vrai plein écran si le navigateur le permet (webkit sur iPad), sinon plein écran dans la page.
+  // L'état suit fullscreenchange : quitter par le geste du système quitte aussi la présentation.
   useEffect(() => {
-    document.body.classList.toggle('presenting', presenting);
     if (!presenting) return;
+    document.body.classList.add('presenting');
+    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => void };
     const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => undefined);
-    else el.webkitRequestFullscreen?.();
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setPresenting(false);
+    const fsElement = () => document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+    let wentFullscreen = false;
+    const onChange = () => {
+      if (fsElement()) wentFullscreen = true;
+      else if (wentFullscreen || document.fullscreenEnabled) setPresenting(false);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    try {
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => undefined);
+      else el.webkitRequestFullscreen?.();
+    } catch {
+      /* pas de plein écran (iPhone, app installée) : le mode reste dans la page */
+    }
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector('.sheet-layer')) setPresenting(false);
+    };
     window.addEventListener('keydown', onEsc);
     return () => {
       window.removeEventListener('keydown', onEsc);
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
       document.body.classList.remove('presenting');
-      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+      try {
+        if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+        else if (doc.webkitFullscreenElement) doc.webkitExitFullscreen?.();
+      } catch {
+        /* déjà sorti */
+      }
     };
   }, [presenting]);
 
