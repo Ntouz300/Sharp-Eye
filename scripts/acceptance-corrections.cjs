@@ -118,8 +118,126 @@ async function point2(page, tag) {
   await page.waitForTimeout(200);
 }
 
+// Synthèse vocale simulée : chaque phrase dure DUR ms ; cancel() interrompt comme Safari et Chrome.
+function fakeSpeech(dur) {
+  window.__spoken = [];
+  window.__cancels = 0;
+  let cur = null;
+  let timer = 0;
+  class U {
+    constructor(text) {
+      this.text = text;
+    }
+  }
+  window.SpeechSynthesisUtterance = U;
+  const synth = {
+    speaking: false,
+    getVoices: () => [{ name: 'Test', lang: 'fr-FR', voiceURI: 'test-fr', localService: true, default: true }],
+    addEventListener() {},
+    removeEventListener() {},
+    speak(u) {
+      if (cur) return; // une seule phrase à la fois : l'app doit annuler avant
+      cur = u;
+      synth.speaking = true;
+      window.__spoken.push(u.text);
+      timer = setTimeout(() => {
+        cur = null;
+        synth.speaking = false;
+        u.onend?.({});
+      }, dur);
+    },
+    cancel() {
+      window.__cancels++;
+      if (!cur) return;
+      clearTimeout(timer);
+      const u = cur;
+      cur = null;
+      synth.speaking = false;
+      u.onerror?.({ error: 'interrupted' });
+    },
+  };
+  Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true });
+}
+
+async function point3(browser, w, h, nav) {
+  const tag = `${w}x${h}/${nav}`;
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+  await ctx.addInitScript((n) => localStorage.setItem('sharp-eye:settings', JSON.stringify({ navSize: n, graphSize: n, narration: true })), nav);
+  await ctx.addInitScript(fakeSpeech, 400);
+  const page = await ctx.newPage();
+  const spoken = () => page.evaluate(() => window.__spoken.slice());
+  await page.goto(URL);
+  await page.getByRole('button', { name: 'Importer' }).first().click();
+  await page.getByRole('button', { name: /Partie d’exemple/ }).click();
+  await page.waitForSelector('.moves-view');
+  // Analyse en cours : avancer d'un coup puis laisser l'analyse progresser.
+  await page.getByRole('button', { name: 'Coup suivant' }).click();
+  await page.waitForTimeout(2500);
+  let s = await spoken();
+  ok(s.length === 1, `${tag} P3 un coup lu une seule fois pendant que l’analyse progresse (${s.length} : ${s.join(' | ').slice(0, 120)})`);
+  await page.waitForSelector('.overview, .moves-view .move-detail[class*="label-"]', { timeout: 180000 });
+  await page.waitForFunction(() => !document.querySelector('.analysis-banner progress, .analysis-banner [role="progressbar"]'), null, { timeout: 180000 }).catch(() => {});
+  if (await page.locator('.overview').count()) await page.getByRole('button', { name: /Coup par coup depuis/ }).click();
+  await page.waitForTimeout(800);
+  // Avancer vite de 5 coups : seule la dernière position est lue.
+  let before = (await spoken()).length;
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(40);
+  }
+  await page.waitForTimeout(900);
+  s = (await spoken()).slice(before);
+  ok(s.length === 1, `${tag} P3 5 coups rapides : ${s.length} phrase(s) lue(s), attendu 1`);
+  // Revenir sur un coup le relit une fois.
+  before = (await spoken()).length;
+  await page.keyboard.press('ArrowLeft');
+  await page.waitForTimeout(900);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(900);
+  s = (await spoken()).slice(before);
+  ok(s.length === 2, `${tag} P3 revenir puis avancer : ${s.length} phrases, attendu 2`);
+  // Lecture automatique depuis le début : une phrase par coup joué.
+  await page.keyboard.press('ArrowUp');
+  await page.waitForTimeout(300);
+  before = (await spoken()).length;
+  const plies = await page.evaluate(() => document.querySelectorAll('.deep-body .move-list [data-ply], .move-list button').length);
+  await page.getByRole('button', { name: 'Lecture automatique' }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Coup suivant"]')?.disabled, null, { timeout: 120000 });
+  await page.waitForTimeout(1200);
+  s = (await spoken()).slice(before);
+  const total = await page.evaluate(() => Number(document.querySelector('.rv-title-sub')?.textContent.match(/\d+/)?.[0] ?? 0));
+  const n = await page.evaluate(async () => {
+    const r = await new Promise((res) => {
+      const req = indexedDB.open('sharp-eye');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('games');
+        const all = tx.objectStore('games').getAll();
+        all.onsuccess = () => res(all.result[0]?.plies ?? 0);
+      };
+    });
+    return r;
+  });
+  ok(s.length === n, `${tag} P3 lecture automatique : ${s.length} phrases pour ${n} coups`);
+  // Couper la narration, puis quitter : la voix s'arrête.
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(100);
+  const c0 = await page.evaluate(() => window.__cancels);
+  await page.getByRole('button', { name: /Retour : Parties/ }).click();
+  await page.waitForTimeout(100);
+  const st = await page.evaluate(() => ({ c: window.__cancels, speaking: window.speechSynthesis.speaking }));
+  ok(st.c > c0 && !st.speaking, `${tag} P3 quitter la revue arrête la voix`);
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch();
+  if (POINTS.includes('3'))
+    for (const sz of SIZES.slice(0, 1)) {
+      const [w, h] = sz.split('x').map(Number);
+      await point3(browser, w, h, NAVS[0]);
+    }
+  if (POINTS.some((p) => ['1', '2'].includes(p)))
   for (const nav of NAVS)
     for (const sz of SIZES) {
       const [w, h] = sz.split('x').map(Number);
