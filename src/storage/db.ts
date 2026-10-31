@@ -40,11 +40,42 @@ export interface StoredEval {
   value: PositionEval;
 }
 
+export interface StoredPuzzle {
+  /** `${gameId}|${ply}` */
+  id: string;
+  gameId: string;
+  /** Index du coup dans la partie (0 = premier coup). */
+  moveIndex: number;
+  fen: string;
+  /** Meilleure suite du moteur (UCI), le premier coup est la solution. */
+  solution: string[];
+  /** Coup réellement joué (UCI). */
+  played: string;
+  label: 'mistake' | 'blunder' | 'miss';
+  theme: string;
+  explanation?: string;
+  rating: number;
+  /** Prochaine révision (ms depuis 1970). */
+  due: number;
+  /** Étape de révision : 0 = nouveau ou raté, puis 1 à 4 (1, 3, 7, 21 jours). */
+  stage: number;
+  attempts: number;
+  successes: number;
+  createdAt: number;
+}
+
+export interface KeyValue {
+  key: string;
+  value: unknown;
+}
+
 /** Base locale (IndexedDB). Le schéma est versionné : ajouter une version pour chaque migration. */
 export class SharpEyeDB extends Dexie {
   games!: Table<StoredGame, string>;
   analyses!: Table<StoredAnalysis, string>;
   evals!: Table<StoredEval, string>;
+  puzzles!: Table<StoredPuzzle, string>;
+  kv!: Table<KeyValue, string>;
 
   constructor() {
     super('sharp-eye');
@@ -52,6 +83,11 @@ export class SharpEyeDB extends Dexie {
       games: 'id, importedAt, movesKey, link, white, black, date',
       analyses: 'key, gameId',
       evals: 'key',
+    });
+    // v2 : puzzles personnels et valeurs diverses (classement, séries).
+    this.version(2).stores({
+      puzzles: 'id, gameId, due, theme, stage',
+      kv: 'key',
     });
   }
 }
