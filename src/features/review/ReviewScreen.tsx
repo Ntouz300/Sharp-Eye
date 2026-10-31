@@ -15,7 +15,7 @@ import { displaySan } from '../../ui/notation';
 import { safeFilename, shareOrDownload } from '../../ui/share';
 import { MenuSheet, rememberAnchor, Sheet, type MenuItem } from '../../ui/Sheet';
 import { useToast } from '../../ui/toast';
-import { speak, speechAvailable, stopSpeaking } from '../../ui/speech';
+import { frenchVoices, resolveVoice, SAMPLE_SENTENCE, speak, speechAvailable, stopSpeaking } from '../../ui/speech';
 import { useSettings } from '../settings/settings';
 import { EvalBar } from './EvalBar';
 import { EvalGraph } from './EvalGraph';
@@ -208,7 +208,7 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
     let cancelled = false;
     let next = 0;
     const wait = window.setTimeout(() => {
-      void speak(narrationText(game.moves[ply - 1], analysisRef.current?.moves[ply - 1])).then(() => {
+      void speak(narrationText(game.moves[ply - 1], analysisRef.current?.moves[ply - 1], useSettings.getState().sayMove)).then(() => {
         if (cancelled) return;
         spokenPly.current = ply;
         // En lecture automatique, le coup suivant attend la fin de la phrase.
@@ -675,6 +675,22 @@ function ReviewMenu({ game, onClose, extra = [] }: { game: ParsedGame; onClose: 
                 s.set({ narration: !s.narration });
               },
             },
+            ...(frenchVoices().length > 1
+              ? [
+                  {
+                    label: 'Voix',
+                    icon: 'user',
+                    value: resolveVoice(s.voiceURI).voice?.name ?? 'Par défaut',
+                    onSelect: () => {
+                      const list = frenchVoices();
+                      const cur = list.findIndex((v) => v.voiceURI === resolveVoice(s.voiceURI).voice?.voiceURI);
+                      const next = list[(cur + 1) % list.length];
+                      s.set({ voiceURI: next.voiceURI });
+                      void speak(SAMPLE_SENTENCE, { voiceURI: next.voiceURI });
+                    },
+                  },
+                ]
+              : []),
           ]
         : []),
       { label: 'Vitesse de lecture', icon: 'play', value: speedName, onSelect: () => s.set({ playSpeed: SPEEDS[(SPEEDS.findIndex(([v]) => v === s.playSpeed) + 1) % SPEEDS.length][0] }) },

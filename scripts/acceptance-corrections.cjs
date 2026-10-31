@@ -132,7 +132,11 @@ function fakeSpeech(dur) {
   window.SpeechSynthesisUtterance = U;
   const synth = {
     speaking: false,
-    getVoices: () => [{ name: 'Test', lang: 'fr-FR', voiceURI: 'test-fr', localService: true, default: true }],
+    getVoices: () => [
+      { name: 'Samantha', lang: 'en-US', voiceURI: 'en-sam', localService: true, default: false },
+      { name: 'Amélie', lang: 'fr-CA', voiceURI: 'fr-amelie', localService: true, default: false },
+      { name: 'Thomas', lang: 'fr-FR', voiceURI: 'fr-thomas', localService: true, default: true },
+    ],
     addEventListener() {},
     removeEventListener() {},
     speak(u) {
@@ -140,6 +144,7 @@ function fakeSpeech(dur) {
       cur = u;
       synth.speaking = true;
       window.__spoken.push(u.text);
+      window.__last = { voice: u.voice?.voiceURI, rate: u.rate };
       timer = setTimeout(() => {
         cur = null;
         synth.speaking = false;
@@ -230,12 +235,81 @@ async function point3(browser, w, h, nav) {
   await ctx.close();
 }
 
+async function points456(browser, w, h, nav) {
+  const tag = `${w}x${h}/${nav}`;
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+  await ctx.addInitScript((n) => {
+    if (!localStorage.getItem('sharp-eye:settings')) localStorage.setItem('sharp-eye:settings', JSON.stringify({ navSize: n, graphSize: n, narration: true }));
+  }, nav);
+  await ctx.addInitScript(fakeSpeech, 50);
+  const page = await ctx.newPage();
+  const spoken = () => page.evaluate(() => window.__spoken.slice());
+  await openSample(page);
+  // Point 4 et 5 : première imprécision ou pire.
+  await page.getByRole('button', { name: 'Erreur suivante' }).click();
+  await page.waitForTimeout(700);
+  let s = await spoken();
+  const said = s[s.length - 1] ?? '';
+  ok(!/(^|\s)\d+\s*\./.test(said) && !/coup numéro/i.test(said), `${tag} P4 phrase lue sans numéro : « ${said} »`);
+  ok(/^[^.]+\. (Imprécision|Erreur|Gaffe|Occasion manquée)\. (.+)\.$/.test(said), `${tag} P4 format « coup. classement. raison »`);
+  const text = await page.locator('.move-detail .explanation').textContent();
+  ok(/Mieux valait|Il fallait jouer/.test(text) && text.split(/(?<=\.)\s+/).length <= 2, `${tag} P5 explication concrète à l’écran : « ${text} »`);
+  const reason = said.split('. ').slice(2).join('. ');
+  ok(reason.split(/\s+/).length <= 15, `${tag} P5 raison lue de ${reason.split(/\s+/).length} mots (≤ 15)`);
+  // Réglage « Lire aussi le coup joué » désactivé.
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('sharp-eye:settings'));
+    localStorage.setItem('sharp-eye:settings', JSON.stringify({ ...st, sayMove: false }));
+  });
+  await page.reload();
+  await page.locator('.game-card').first().click();
+  await page.waitForSelector('.overview');
+  await page.getByRole('button', { name: /Coup par coup depuis/ }).click();
+  await page.getByRole('button', { name: 'Erreur suivante' }).click();
+  await page.waitForTimeout(700);
+  s = await spoken();
+  ok(/^(Imprécision|Erreur|Gaffe|Occasion manquée)\. /.test(s[s.length - 1] ?? ''), `${tag} P4 sans le coup joué : « ${s[s.length - 1]} »`);
+  await page.getByRole('button', { name: /Retour : Parties/ }).click();
+  // Point 6 : choix de la voix.
+  await page.getByRole('button', { name: 'Profil', exact: true }).click();
+  await page.getByRole('button', { name: /Réglages/ }).click();
+  await page.waitForSelector('.voice-list');
+  const names = await page.locator('.voice-list > .voice-option .voice-name').allTextContents();
+  ok(names.join(',') === 'Thomas,Amélie', `${tag} P6 voix françaises d’abord, France puis Canada (${names.join(', ')})`);
+  ok(!(await page.locator('.voice-list details').evaluate((d) => d.open)), `${tag} P6 « Autres langues » replié`);
+  await page.locator('.voice-option', { hasText: 'Amélie' }).click();
+  await page.locator('.rate-row input').fill('1.2');
+  await page.getByRole('button', { name: /Écouter/ }).click();
+  await page.waitForTimeout(100);
+  const last = await page.evaluate(() => ({ ...window.__last, text: window.__spoken[window.__spoken.length - 1] }));
+  ok(last.voice === 'fr-amelie' && Math.abs(last.rate - 1.2) < 0.001 && /Cavalier f3/.test(last.text), `${tag} P6 « Écouter » avec la voix et la vitesse choisies (${JSON.stringify(last)})`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p6-${tag.replace('/', '-')}.png`, fullPage: false });
+  await page.reload();
+  await page.getByRole('button', { name: 'Profil', exact: true }).click();
+  await page.getByRole('button', { name: /Réglages/ }).click();
+  ok(await page.locator('.voice-option.active', { hasText: 'Amélie' }).count() === 1, `${tag} P6 voix retrouvée après rechargement`);
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('sharp-eye:settings'));
+    localStorage.setItem('sharp-eye:settings', JSON.stringify({ ...st, voiceURI: 'voix-disparue' }));
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Profil', exact: true }).click();
+  await page.getByRole('button', { name: /Réglages/ }).click();
+  ok((await page.getByText(/n’est plus sur cet appareil/).count()) === 1 && (await page.locator('.voice-option.active', { hasText: 'Thomas' }).count()) === 1, `${tag} P6 voix disparue : première voix française, et message`);
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch();
   if (POINTS.includes('3'))
     for (const sz of SIZES.slice(0, 1)) {
       const [w, h] = sz.split('x').map(Number);
       await point3(browser, w, h, NAVS[0]);
+    }
+  if (POINTS.some((p) => ['4', '5', '6'].includes(p)))
+    for (const sz of SIZES) {
+      const [w, h] = sz.split('x').map(Number);
+      await points456(browser, w, h, NAVS[NAVS.length - 1]);
     }
   if (POINTS.some((p) => ['1', '2'].includes(p)))
   for (const nav of NAVS)

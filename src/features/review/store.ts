@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { analyzeGame, buildAnalysis, type GameAnalysis } from '../../analysis/analyzeGame';
+import { EXPLAIN_VERSION } from '../../analysis/explain';
 import { REVIEW_LEVELS } from '../../analysis/config';
 import type { ReviewLevel } from '../../analysis/config';
 import { getEngine } from '../../engine/stockfish';
@@ -113,7 +114,13 @@ export const useReview = create<ReviewState>((set, get) => ({
     const saved = await db.analyses.where('gameId').equals(stored.id).toArray();
     const done = saved.find((a) => a.analysis.complete);
     if (done) {
-      set({ analysis: done.analysis, stage: opts.stage ?? (opts.ply ? 'moves' : 'overview') });
+      let analysis = done.analysis;
+      // Revue enregistrée avec d'anciennes règles d'explication : reconstruite depuis ses évaluations, sans moteur.
+      if (analysis.explainVersion !== EXPLAIN_VERSION && analysis.evals?.length) {
+        analysis = buildAnalysis(game, analysis.evals, analysis.level, analysis.engine);
+        void db.analyses.put({ ...done, analysis });
+      }
+      set({ analysis, stage: opts.stage ?? (opts.ply ? 'moves' : 'overview') });
       return;
     }
     if (stored.unanalyzable) {

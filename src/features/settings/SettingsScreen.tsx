@@ -3,6 +3,8 @@ import { REVIEW_LEVELS, type ReviewLevel } from '../../analysis/config';
 import { exportBackup, importBackup } from '../../storage/backup';
 import { shareOrDownload } from '../../ui/share';
 import { THEMES } from '../../themes/themes';
+import { frenchVoices, resolveVoice, SAMPLE_SENTENCE, speak, speechAvailable, voiceRegion } from '../../ui/speech';
+import { useVoices } from '../../ui/useVoices';
 import { applyTheme, SIZES, useSettings, type Notation, type Size } from './settings';
 
 export function SettingsScreen() {
@@ -94,7 +96,12 @@ export function SettingsScreen() {
           <input type="checkbox" checked={s.narration} onChange={(e) => s.set({ narration: e.target.checked })} />
           Narration : lire les coups et les explications à voix haute
         </label>
+        <label className="toggle">
+          <input type="checkbox" checked={s.sayMove} onChange={(e) => s.set({ sayMove: e.target.checked })} />
+          Lire aussi le coup joué (sinon, seulement son classement et la raison)
+        </label>
       </section>
+      {speechAvailable() && <VoiceSettings />}
       <section className="settings-card">
         <h2>Sauvegarde</h2>
         <p className="muted small">Toutes tes données restent sur cet appareil. Sauvegarde-les dans un fichier (iCloud Drive, Fichiers) pour les retrouver sur un autre appareil.</p>
@@ -136,6 +143,49 @@ export function SettingsScreen() {
         {backupMsg && <p className="small" role="status">{backupMsg}</p>}
       </section>
     </div>
+  );
+}
+
+/** Voix de la narration : voix françaises de l'appareil, autres langues repliées, essai et vitesse. */
+function VoiceSettings() {
+  const s = useSettings();
+  const voices = useVoices();
+  const french = frenchVoices(voices);
+  const others = voices.filter((v) => !french.includes(v)).sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name));
+  const { voice, missing } = resolveVoice(s.voiceURI, voices);
+  const option = (v: SpeechSynthesisVoice) => (
+    <label key={v.voiceURI} className={`voice-option ${voice?.voiceURI === v.voiceURI ? 'active' : ''}`}>
+      <input type="radio" name="voice" checked={voice?.voiceURI === v.voiceURI} onChange={() => s.set({ voiceURI: v.voiceURI })} />
+      <span className="voice-name">{v.name}</span>
+      <span className="muted small">{voiceRegion(v)}</span>
+    </label>
+  );
+  return (
+    <section className="settings-card" aria-labelledby="voice-title">
+      <h2 id="voice-title">Voix de la narration</h2>
+      {missing && <p className="notice warn">La voix choisie n’est plus sur cet appareil : la première voix française est utilisée.</p>}
+      {voices.length === 0 ? (
+        <p className="muted small">Aucune voix chargée pour l’instant. Elles apparaissent dès que l’appareil les a chargées.</p>
+      ) : (
+        <div className="voice-list" role="radiogroup" aria-label="Voix">
+          {french.length ? french.map(option) : <p className="muted small">Aucune voix française sur cet appareil (voir l’aide pour en télécharger).</p>}
+          {others.length > 0 && (
+            <details className="fold">
+              <summary>Autres langues ({others.length})</summary>
+              {others.map(option)}
+            </details>
+          )}
+        </div>
+      )}
+      <label className="rate-row">
+        <span>Vitesse</span>
+        <input type="range" min={0.8} max={1.4} step={0.05} value={s.speechRate} onChange={(e) => s.set({ speechRate: Number(e.target.value) })} aria-valuetext={`${s.speechRate.toFixed(2).replace('.', ',')} fois`} />
+        <span className="rate-value">{s.speechRate.toFixed(2).replace('.', ',')}×</span>
+      </label>
+      <button type="button" className="ghost" onClick={() => void speak(SAMPLE_SENTENCE, { voiceURI: s.voiceURI, rate: s.speechRate })}>
+        Écouter : « {SAMPLE_SENTENCE} »
+      </button>
+    </section>
   );
 }
 
