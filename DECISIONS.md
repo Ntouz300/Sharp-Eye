@@ -113,3 +113,9 @@ Choix faits là où le cahier des charges laissait une marge, ou s'en écarte, a
 - **Poids** : `tree.json` fait 284 Ko (66 Ko compressé), chargé à part au premier affichage de l’onglet ; avec le contenu rédigé, moins de 320 Ko ajoutés.
 - **Mes parties** : une partie appartient à une ouverture par son code ECO ou son nom (base Lichess). La bibliothèque reçoit un filtre « Ouverture » qu’un toucher sur « Tout afficher » ou un changement d’onglet retire.
 - **Barre d’onglets** : 5 entrées ; sous 480 px, libellés à 10,5 px sur une ligne, vérifiés sans coupure à 390 px.
+
+## Corrections, palier P4 (revue)
+
+- **Ouverture en tête des commentaires** : `openingsByPly` donne, pour chaque demi-coup avant le 30e, la dernière ouverture nommée de la base Lichess (la plus précise : « Caro-Kann, attaque Hillbilly (B10) », « Gambit viennois »). Le détail du coup l’affiche en première ligne tant que la partie suit la théorie, puis « Sortie de la théorie : … » au premier coup hors livre. La narration la lit quand le nom change, pas à chaque coup.
+- **Exploration évaluée** : chaque coup essayé est analysé à profondeur 14 (2 lignes), l’un après l’autre sur le moteur unique, et classé avec les mêmes règles que la partie (`judgeTried` → `classifyMove`). Le panneau montre l’éval avant → après, le meilleur coup, la suite du moteur et la comparaison avec le coup joué dans la partie.
+- **Rien n’est écrit** : les essais et leurs évals restent en mémoire et disparaissent en revenant à la partie. Aucun appel à la base ; l’acceptation compare un instantané d’IndexedDB avant et après exploration et rechargement.
