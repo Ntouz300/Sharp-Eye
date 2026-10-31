@@ -4,7 +4,7 @@ import type { MoveNode, ParsedGame } from '../pgn/types';
 import { gameAccuracy } from './accuracy';
 import { classifyMove, type Label } from './classify';
 import { REVIEW_LEVELS, type ReviewLevel } from './config';
-import { explainMove } from './explain';
+import { EXPLAIN_VERSION, explainMove, type Explanation } from './explain';
 import { isRecapture, majorsAndMinors, sacrificedMaterial } from './material';
 import { lookupBook } from './openings';
 import { estimatePerformance } from './performance';
@@ -28,9 +28,13 @@ export interface MoveAnalysis {
   bestLine: string[];
   playedIsBest: boolean;
   phase: Phase;
-  /** Explication en français pour les coups à revoir. */
+  /** Explication en français (2 phrases au plus) : ce qui se passe et le meilleur coup. */
   explanation?: string;
+  /** Même explication pour la narration, 15 mots au plus. */
+  spokenExplanation?: string;
 }
+
+const explanationFields = (e: Explanation | null) => (e ? { explanation: e.text, spokenExplanation: e.spoken } : {});
 
 export interface PlayerSummary {
   accuracy: number | null;
@@ -58,6 +62,8 @@ export interface GameAnalysis {
   complete: boolean;
   /** Évaluations de chaque position (lignes limitées à 8 demi-coups), pour l'export PGN annoté. */
   evals: PositionEval[];
+  /** Version des règles d'explication (voir EXPLAIN_VERSION). */
+  explainVersion?: number;
 }
 
 /** Cache des évaluations (clé FEN + profondeur + MultiPV). */
@@ -213,7 +219,7 @@ export function buildAnalysis(game: ParsedGame, rawEvals: PositionEval[], level:
       bestLine: uciToSanLine(m.fenBefore, best.pv, 8),
       playedIsBest,
       phase: phases[i],
-      explanation:
+      ...explanationFields(
         explainMove({
           label,
           fenBefore: m.fenBefore,
@@ -222,7 +228,8 @@ export function buildAnalysis(game: ParsedGame, rawEvals: PositionEval[], level:
           bestScore: best.score,
           replyPv: after.lines[0].pv,
           scoreAfter: after.lines[0].score,
-        }) ?? undefined,
+        }),
+      ),
     });
   }
 
@@ -273,6 +280,7 @@ export function buildAnalysis(game: ParsedGame, rawEvals: PositionEval[], level:
     black: summary('b'),
     keyMoments,
     complete: moves.length === game.moves.length,
+    explainVersion: EXPLAIN_VERSION,
     evals,
   };
 }

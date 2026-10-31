@@ -8,13 +8,13 @@ export const INTERVALS = [1, 3, 7, 21];
 
 export function themeOf(explanation: string | undefined, phase: string): string {
   const t = explanation ?? '';
-  if (/mat en/.test(t)) return 'Mats';
+  if (/\bmat\b|mat en/.test(t)) return 'Mats';
   if (/fourchette/.test(t)) return 'Fourchettes';
-  if (/clouage/.test(t)) return 'Clouages';
+  if (/clou/.test(t)) return 'Clouages';
   if (/enfilade/.test(t)) return 'Enfilades';
-  if (/découverte/.test(t)) return 'Attaques à la découverte';
-  if (/promotion/.test(t)) return 'Promotions';
-  if (/sans protection|gain d|matériel/.test(t)) return 'Pièces en prise';
+  if (/découv/.test(t)) return 'Attaques à la découverte';
+  if (/promotion|promeut|va à dame/.test(t)) return 'Promotions';
+  if (/sans protection|en prise|gain d|gagne|perds|matériel/.test(t)) return 'Pièces en prise';
   if (phase === 'endgame') return 'Finales';
   return 'Tactique';
 }
