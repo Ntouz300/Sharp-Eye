@@ -85,6 +85,12 @@ export function Help() {
           <li><strong>Narration et présentation</strong> : la narration (menu « … ») lit chaque coup une fois, avec son classement et son explication ; en lecture automatique, le coup suivant attend la fin de la phrase. « Mode présentation » agrandit l’échiquier pour montrer une partie : les flèches et la lecture marchent toujours, et on en sort par la croix, la touche Échap ou le geste du système. L’échiquier en perspective 3D s’active dans les Réglages.</li>
         </ul>
       </section>
+      <section className="settings-card" id="voix">
+        <h2>Voix de la narration</h2>
+        <p>La narration dit le coup, son classement et une raison courte : « Cavalier f3. Imprécision. Mieux valait d4, qui prend le centre. » Le numéro du coup n’est pas lu, et les bons coups ne sont pas commentés, sauf les coups brillants, clés ou excellents.</p>
+        <p>Dans Profil › Réglages › Voix de la narration, choisis la voix (françaises d’abord, autres langues repliées), écoute-la et règle sa vitesse. Le menu « … » de la revue passe aussi d’une voix française à l’autre.</p>
+        <p>Pour une voix plus naturelle sur iPad : Réglages de l’iPad › Accessibilité › Contenu énoncé › Voix › Français, puis télécharge une voix « améliorée » ou « premium ». Elle apparaît ensuite dans la liste de Sharp Eye.</p>
+      </section>
       <section className="settings-card">
         <h2>Raccourcis clavier</h2>
         <p>← → : coup précédent / suivant · ↑ ↓ : début / fin · F : retourner l’échiquier · Espace : lecture automatique.</p>

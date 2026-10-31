@@ -8,6 +8,7 @@ import { applyTheme, useSettings } from './features/settings/settings';
 import { StatsScreen } from './features/stats/StatsScreen';
 import { TrainingScreen } from './features/training/TrainingScreen';
 import { Icon } from './ui/Icon';
+import { setSpeechPrefs } from './ui/speech';
 import { useToast } from './ui/toast';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -26,6 +27,9 @@ export function App() {
   const animations = useSettings((s) => s.animations);
   const navSize = useSettings((s) => s.navSize);
   const graphSize = useSettings((s) => s.graphSize);
+  const voiceURI = useSettings((s) => s.voiceURI);
+  const speechRate = useSettings((s) => s.speechRate);
+  useEffect(() => setSpeechPrefs({ voiceURI, rate: speechRate }), [voiceURI, speechRate]);
   const toast = useToast((s) => s.message);
 
   useEffect(() => applyTheme(theme), [theme]);
