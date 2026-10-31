@@ -134,6 +134,8 @@ export function repertoire(stats: GameStat[], color: 'w' | 'b', depth = 8): Repe
 export function weaknesses(puzzles: StoredPuzzle[]): { theme: string; count: number; failed: number }[] {
   const m = new Map<string, { count: number; failed: number }>();
   for (const p of puzzles) {
+    // Les défis de la banque ne viennent pas de tes parties.
+    if (p.label === 'bank') continue;
     const e = m.get(p.theme) ?? { count: 0, failed: 0 };
     e.count++;
     e.failed += p.attempts - p.successes;

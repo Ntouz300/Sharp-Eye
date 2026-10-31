@@ -1,6 +1,7 @@
 import type { GameAnalysis } from '../../analysis/analyzeGame';
 import type { ParsedGame } from '../../pgn/types';
 import { db, type StoredPuzzle } from '../../storage/db';
+import { cutLine, isAmbiguous, playerMoves } from './challenge';
 
 const DAY = 24 * 3600 * 1000;
 /** Intervalles de révision après chaque réussite : 1, 3, 7 puis 21 jours. Un échec ramène au lendemain. */
@@ -12,7 +13,7 @@ export function themeOf(explanation: string | undefined, phase: string): string 
   if (/fourchette/.test(t)) return 'Fourchettes';
   if (/clou/.test(t)) return 'Clouages';
   if (/enfilade/.test(t)) return 'Enfilades';
-  if (/découv/.test(t)) return 'Attaques à la découverte';
+  if (/découv/.test(t)) return 'Découvertes';
   if (/promotion|promeut|va à dame/.test(t)) return 'Promotions';
   if (/sans protection|en prise|gain d|gagne|perds|matériel/.test(t)) return 'Pièces en prise';
   if (phase === 'endgame') return 'Finales';
@@ -35,7 +36,14 @@ export function puzzlesFromGame(gameId: string, game: ParsedGame, analysis: Game
     const solution = analysis.evals?.[i]?.lines[0]?.pv ?? (a.bestUci ? [a.bestUci] : []);
     if (!solution.length) return;
     const loss = Math.max(0, a.winBefore - a.winAfter);
+    const cut = cutLine(m.fenBefore, solution);
     out.push({
+      version: 2,
+      line: cut.line,
+      goal: cut.goal,
+      gain: cut.gain,
+      // Premier coup non unique (le 2e choix du moteur gagne aussi) : pas un bon défi.
+      ambiguous: isAmbiguous(analysis.evals?.[i], m.color),
       id: `${gameId}|${i}`,
       gameId,
       moveIndex: i,
@@ -55,6 +63,28 @@ export function puzzlesFromGame(gameId: string, game: ParsedGame, analysis: Game
     });
   });
   return out;
+}
+
+/** Un puzzle peut être proposé : premier coup unique et combinaison d'au moins 2 coups (ou rallongeable). */
+export const playable = (p: StoredPuzzle) => !p.ambiguous && (p.line ? playerMoves(p.line) >= 1 : true);
+
+/**
+ * Convertit les anciens puzzles (un seul coup) en défis en plusieurs coups, sans toucher à leur historique
+ * (révisions, réussites, échéances). L'ambiguïté du premier coup est relue dans l'analyse enregistrée.
+ */
+export async function migratePuzzles(): Promise<number> {
+  const old = await db.puzzles.filter((p) => p.version !== 2).toArray();
+  if (!old.length) return 0;
+  const analyses = await db.analyses.where('gameId').anyOf([...new Set(old.map((p) => p.gameId))]).toArray();
+  const evalsFor = (gameId: string) => analyses.find((a) => a.gameId === gameId && a.analysis.complete)?.analysis.evals;
+  const fresh = old.map((p) => {
+    const ev = evalsFor(p.gameId)?.[p.moveIndex];
+    const color = p.fen.split(' ')[1] === 'b' ? 'b' : 'w';
+    const cut = cutLine(p.fen, p.solution);
+    return { ...p, version: 2, line: cut.line, goal: cut.goal, gain: cut.gain, ambiguous: ev ? isAmbiguous(ev, color) : false, theme: p.theme === 'Attaques à la découverte' ? 'Découvertes' : p.theme };
+  });
+  await db.puzzles.bulkPut(fresh);
+  return fresh.length;
 }
 
 /** Quels camps appartiennent à l'utilisateur (pseudos des réglages), sinon les deux. */
