@@ -57,9 +57,9 @@ export function StatsScreen() {
   const { me, stats } = computed;
   if (!me.length || !stats.length) {
     return (
-      <div className="settings">
+      <div className="settings screen">
+        <h1>Progrès</h1>
         <section className="settings-card">
-          <h2>Progrès</h2>
           <p>Indique ton pseudo dans les Réglages (ou importe au moins deux de tes parties) pour voir tes statistiques.</p>
         </section>
       </div>
@@ -80,7 +80,13 @@ export function StatsScreen() {
   const weak = weaknesses(data.puzzles);
 
   return (
-    <div className="stats">
+    <div className="stats screen">
+      <header className="screen-head">
+        <h1>Progrès</h1>
+        <p className="muted small" data-testid="analyzed-basis">
+          Précision basée sur {analyzed.length} partie{analyzed.length > 1 ? 's' : ''} analysée{analyzed.length > 1 ? 's' : ''} sur {stats.length}
+        </p>
+      </header>
       <div className="puzzle-stats">
         <div>
           <span className="stat-big">{stats.length}</span>
@@ -88,7 +94,7 @@ export function StatsScreen() {
         </div>
         <div>
           <span className="stat-big">{formatAccuracy(mean(analyzed.map((s) => s.accuracy!)))}</span>
-          <span className="muted small">précision moyenne ({analyzed.length} analysées)</span>
+          <span className="muted small">précision moyenne</span>
         </div>
         <div>
           <span className="stat-big">{pct(mean(stats.map((s) => s.score).filter((x): x is number => x !== null)))}</span>
@@ -196,7 +202,7 @@ export function StatsScreen() {
                   <span>
                     {w.theme} <span className="muted small">({w.count} manqué{w.count > 1 ? 's' : ''})</span>
                   </span>
-                  <button type="button" className="link-btn" onClick={() => useReview.getState().setView('puzzles', w.theme)}>
+                  <button type="button" className="link-btn" onClick={() => useReview.getState().setTab('training', w.theme)}>
                     S'entraîner
                   </button>
                 </li>

@@ -14,6 +14,8 @@ export interface PositionEval {
   depth: number;
   /** Lignes triées de la meilleure à la moins bonne. */
   lines: EngineLine[];
+  /** Temps de calcul réellement passé sur la position (ms), absent pour les positions terminales. */
+  timeMs?: number;
 }
 
 export interface Engine {

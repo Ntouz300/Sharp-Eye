@@ -148,7 +148,9 @@ export async function analyzeGame(game: ParsedGame, opts: AnalyzeOptions): Promi
       const key = cacheKey(fen, depth, multiPv);
       ev = (await opts.cache?.get(key)) ?? null;
       if (!ev) {
+        const t0 = performance.now();
         ev = await opts.engine.analyze(fen, depth, multiPv, opts.signal);
+        ev = { ...ev, timeMs: Math.round(performance.now() - t0) };
         await opts.cache?.set(key, ev);
       }
     }

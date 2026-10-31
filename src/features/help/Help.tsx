@@ -58,6 +58,22 @@ export function Help() {
           ))}
         </ul>
       </section>
+      <section className="settings-card" id="ecarts-chesscom">
+        <h2>Pourquoi mes résultats diffèrent de chess.com</h2>
+        <p>C’est le même moteur, Stockfish, mais il ne travaille pas dans les mêmes conditions, et les étiquettes ne suivent pas les mêmes règles.</p>
+        <ul className="month-notes">
+          <li><strong>Moins de calcul.</strong> Sharp Eye calcule sur ton iPad, avec un seul cœur et une profondeur fixe (14, 16 ou 20 selon le niveau). chess.com calcule sur ses serveurs, plus longtemps. Une tactique en plusieurs coups peut donc nous échapper en Rapide ou en Standard.</li>
+          <li><strong>Un réseau plus léger.</strong> La version de Stockfish qui tient dans une app web utilise un réseau neuronal réduit : l’évaluation est un peu moins fine dans les positions calmes.</li>
+          <li><strong>Pas de tables de finales.</strong> Certaines finales simples peuvent être mal jugées.</li>
+          <li><strong>Une autre formule de précision.</strong> Sharp Eye utilise une formule publique (celle de Lichess). chess.com a la sienne, non publiée : l’écart est de quelques points, dans un sens ou dans l’autre.</li>
+          <li><strong>D’autres seuils d’étiquettes.</strong> Nos étiquettes dépendent de la perte de chances de gain (2, 5, 10 et 20 points). chess.com tient aussi compte du niveau des joueurs et a sa propre définition de « Brillant » : tu verras chez nous moins de coups brillants.</li>
+        </ul>
+        <p>Pour te rapprocher de chess.com, choisis le niveau Approfondie, ou touche « Analyser ce coup plus profondément » dans Approfondir : le coup est recalculé à profondeur 24. Le détail de chaque coup indique la profondeur, le temps et le nombre de lignes utilisés.</p>
+      </section>
+      <section className="settings-card">
+        <h2>Synchronisation chess.com</h2>
+        <p>Relie ton pseudo dans Profil. Les parties arrivent à l’ouverture de l’app et à chaque retour dans l’app : l’iPad ne laisse pas une app web travailler en arrière-plan. Aucune analyse ne démarre seule ; elle commence quand tu ouvres une partie, ou quand tu touches « Analyser toutes les parties ».</p>
+      </section>
       <section className="settings-card">
         <h2>S’entraîner</h2>
         <ul className="month-notes">

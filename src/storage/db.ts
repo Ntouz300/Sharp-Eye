@@ -3,6 +3,8 @@ import type { GameAnalysis } from '../analysis/analyzeGame';
 import type { ReviewLevel } from '../analysis/config';
 import type { PositionEval } from '../engine/types';
 
+export type GameOrigin = 'chesscom' | 'lichess' | 'pgn' | 'position';
+
 export interface StoredGame {
   id: string;
   /** Texte PGN source de la partie. */
@@ -29,6 +31,12 @@ export interface StoredGame {
   accuracyBlack?: number;
   analyzedLevel?: ReviewLevel;
   favorite?: 0 | 1;
+  /** Provenance : compte chess.com synchronisé, Lichess, fichier PGN ou position (image ou éditeur). */
+  origin?: GameOrigin;
+  /** Variante que le moteur ou chess.js ne gèrent pas (Chess960…) : affichée mais pas analysée. */
+  unanalyzable?: boolean;
+  /** Ouverte au moins une fois dans la revue (sinon « Nouvelle »). */
+  opened?: boolean;
 }
 
 export interface StoredAnalysis {
