@@ -84,6 +84,14 @@ export function SettingsScreen() {
           <input type="checkbox" checked={s.animations} onChange={(e) => s.set({ animations: e.target.checked })} />
           Animations (respecte aussi le réglage « Réduire les animations » de l'iPad)
         </label>
+        <label className="toggle">
+          <input type="checkbox" checked={s.board3d} onChange={(e) => s.set({ board3d: e.target.checked })} />
+          Échiquier en perspective 3D pendant la revue
+        </label>
+        <label className="toggle">
+          <input type="checkbox" checked={s.narration} onChange={(e) => s.set({ narration: e.target.checked })} />
+          Narration : lire les coups et les explications à voix haute
+        </label>
       </section>
       <section className="settings-card">
         <h2>Sauvegarde</h2>

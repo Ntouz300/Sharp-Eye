@@ -4,11 +4,13 @@ import type { GameAnalysis } from '../../analysis/analyzeGame';
 import { formatAccuracy } from '../../analysis/accuracy';
 import { LABEL_INFO, type Label } from '../../analysis/classify';
 import { parseGame, SPEED_LABEL } from '../../pgn/parser';
-import { db } from '../../storage/db';
+import { db, type StoredGame } from '../../storage/db';
 import { LabelIcon } from '../../ui/LabelIcon';
 import { displaySan } from '../../ui/notation';
 import { useReview } from '../review/store';
 import { useSettings } from '../settings/settings';
+import { badges, monthLabel, monthReport, months } from '../progress/achievements';
+import { Icon } from '../../ui/Icon';
 import { gameStats, groupAccuracy, inferMe, labelRates, mean, repertoire, weaknesses, type GameStat, type RepertoireNode } from './stats';
 
 const PHASE_NAME = { opening: 'Ouverture', middlegame: 'Milieu de partie', endgame: 'Finale' } as const;
@@ -18,10 +20,11 @@ const pct = (x: number | null) => (x === null ? '–' : `${Math.round(x * 100)} 
 export function StatsScreen() {
   const usernames = useSettings((s) => s.usernames);
   const data = useLiveQuery(async () => {
-    const [games, analyses, puzzles, profile] = await Promise.all([db.games.toArray(), db.analyses.toArray(), db.puzzles.toArray(), db.kv.get('puzzleProfile')]);
-    return { games, analyses, puzzles, profile: profile?.value as { rating: number; streak: number } | undefined };
+    const [games, analyses, puzzles, profile, daily] = await Promise.all([db.games.toArray(), db.analyses.toArray(), db.puzzles.toArray(), db.kv.get('puzzleProfile'), db.kv.get('daily')]);
+    return { games, analyses, puzzles, profile: profile?.value as { rating: number; streak: number } | undefined, dailyDone: (daily?.value as { count: number } | undefined)?.count ?? 0 };
   }, []);
   const [repColor, setRepColor] = useState<'w' | 'b'>('w');
+  const [month, setMonth] = useState<string | null>(null);
 
   const computed = useMemo(() => {
     if (!data) return null;
@@ -205,6 +208,10 @@ export function StatsScreen() {
         </section>
       </div>
 
+      <MonthCard stats={stats} month={month ?? months(stats)[0]} onMonth={setMonth} games={data.games} />
+
+      <BadgesCard list={badges({ stats, puzzles: data.puzzles, puzzleRating: data.profile?.rating ?? 1500, streak: data.profile?.streak ?? 0, dailyDone: data.dailyDone })} />
+
       <section className="settings-card">
         <div className="section-head">
           <h2>Répertoire d'ouvertures</h2>
@@ -303,4 +310,91 @@ function RepertoireTree({ root }: { root: RepertoireNode }) {
     );
   };
   return <ul className="rep-tree">{root.children.slice(0, 8).map((c) => render(c, 0, c.san))}</ul>;
+}
+
+function MonthCard({ stats, month, onMonth, games }: { stats: GameStat[]; month: string; onMonth: (m: string) => void; games: StoredGame[] }) {
+  const r = monthReport(stats, month);
+  const delta = r.accuracy !== null && r.previousAccuracy !== null ? r.accuracy - r.previousAccuracy : null;
+  const notation = useSettings((s) => s.notation);
+  const best = r.bestGame ? games.find((g) => g.id === r.bestGame!.id) : undefined;
+  return (
+    <section className="settings-card">
+      <div className="section-head">
+        <h2>
+          <Icon name="calendar" /> Bilan du mois
+        </h2>
+        <select value={month} onChange={(e) => onMonth(e.target.value)} aria-label="Mois">
+          {months(stats).map((m) => (
+            <option key={m} value={m}>
+              {monthLabel(m)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="puzzle-stats">
+        <div>
+          <span className="stat-big">{r.games}</span>
+          <span className="muted small">
+            parties · {r.wins} gagnées, {r.draws} nulles, {r.losses} perdues
+          </span>
+        </div>
+        <div>
+          <span className="stat-big">{formatAccuracy(r.accuracy)}</span>
+          <span className="muted small">
+            précision moyenne
+            {delta !== null && ` (${delta >= 0 ? '+' : ''}${delta.toFixed(1).replace('.', ',')} vs mois précédent)`}
+          </span>
+        </div>
+        <div>
+          <span className="stat-big">{r.blundersPerGame === null ? '–' : r.blundersPerGame.toFixed(1).replace('.', ',')}</span>
+          <span className="muted small">gaffes par partie analysée</span>
+        </div>
+      </div>
+      <ul className="month-notes">
+        {best && r.bestGame && (
+          <li>
+            Meilleure partie : contre {r.bestGame.opponent} ({formatAccuracy(r.bestGame.accuracy ?? null)}).{' '}
+            <button type="button" className="link-btn" onClick={() => void useReview.getState().openGame(best)}>
+              La revoir
+            </button>
+          </li>
+        )}
+        {r.topOpening && (
+          <li>
+            Ouverture la plus jouée : {r.topOpening.moves.split(' ').map((x) => displaySan(x, notation)).join(' ')} ({r.topOpening.games} partie{r.topOpening.games > 1 ? 's' : ''}).
+          </li>
+        )}
+        {delta !== null && <li>{delta >= 1 ? 'Tu progresses : continue comme ça.' : delta <= -1 ? 'Mois plus difficile : les puzzles de tes erreurs t’aideront à rebondir.' : 'Précision stable par rapport au mois précédent.'}</li>}
+      </ul>
+    </section>
+  );
+}
+
+function BadgesCard({ list }: { list: ReturnType<typeof badges> }) {
+  const earned = list.filter((b) => b.earned).length;
+  return (
+    <section className="settings-card">
+      <h2>
+        <Icon name="trophy" /> Badges <span className="muted small">{earned} / {list.length}</span>
+      </h2>
+      <ul className="badges">
+        {list.map((b) => (
+          <li key={b.id} className={b.earned ? 'earned' : ''}>
+            <span className="badge-medal" aria-hidden="true">
+              <Icon name="trophy" size={22} />
+            </span>
+            <span>
+              <strong>{b.name}</strong>
+              <span className="muted small">{b.description}</span>
+              {!b.earned && (
+                <span className="badge-progress" role="progressbar" aria-valuenow={Math.round(b.progress * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`Avancement ${b.name}`}>
+                  <span style={{ width: `${b.progress * 100}%` }} />
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }

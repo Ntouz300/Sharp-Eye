@@ -59,6 +59,16 @@ export function Help() {
         </ul>
       </section>
       <section className="settings-card">
+        <h2>S’entraîner</h2>
+        <ul className="month-notes">
+          <li><strong>Puzzles</strong> : chaque erreur, gaffe ou occasion manquée de tes parties analysées devient un puzzle. Réussi, il revient après 1, 3, 7 puis 21 jours ; raté, il revient le lendemain. Le défi du jour propose un puzzle difficile, une seule chance.</li>
+          <li><strong>Devine le coup</strong> : depuis la revue, l’app cache la suite et note chacun de tes coups (3 points pour le meilleur coup du moteur).</li>
+          <li><strong>Rejouer contre le moteur</strong> : reprends la position affichée face à Stockfish, de 800 à 2800 Elo.</li>
+          <li><strong>Progrès</strong> : précision dans le temps, bilan du mois, répertoire d’ouvertures, faiblesses tactiques et badges.</li>
+          <li><strong>Narration et présentation</strong> : le haut-parleur lit les coups et les explications à voix haute ; le bouton plein écran agrandit l’échiquier pour montrer une partie. L’échiquier en perspective 3D s’active dans les Réglages.</li>
+        </ul>
+      </section>
+      <section className="settings-card">
         <h2>Raccourcis clavier</h2>
         <p>← → : coup précédent / suivant · ↑ ↓ : début / fin · F : retourner l’échiquier · Espace : lecture automatique.</p>
         <p>Sur l’échiquier ou la liste des coups, glisse le doigt horizontalement pour avancer ou reculer.</p>

@@ -18,6 +18,11 @@ const PATHS: Record<string, string> = {
   puzzle: 'M5 9V5h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4h-4a2 2 0 1 0-4 0H5v-4a2 2 0 1 0 0-4z',
   chart: 'M4 20h16 M7 16v-5 M12 16V7 M17 16v-8',
   download: 'M12 4v11 M7.5 10.5 12 15l4.5-4.5 M4 15v4h16v-4',
+  expand: 'M4 9V4h5 M15 4h5v5 M20 15v5h-5 M9 20H4v-5',
+  speaker: 'M4 9.5h3.5L12 5.5v13l-4.5-4H4z M15.5 9a4 4 0 0 1 0 6 M18 6.5a7.5 7.5 0 0 1 0 11',
+  mute: 'M4 9.5h3.5L12 5.5v13l-4.5-4H4z M16 9.5l5 5 M21 9.5l-5 5',
+  trophy: 'M8 4h8v5a4 4 0 0 1-8 0z M8 6H5a3 3 0 0 0 3 4 M16 6h3a3 3 0 0 1-3 4 M12 13v4 M8.5 20h7 M10 17h4v3h-4z',
+  calendar: 'M4 6h16v14H4z M4 10h16 M8 3.5v4 M16 3.5v4',
 };
 
 /** Icônes d'interface dessinées pour l'application (traits 24 × 24). */

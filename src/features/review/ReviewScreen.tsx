@@ -10,6 +10,7 @@ import { displaySan } from '../../ui/notation';
 import { REVIEW_LABELS } from '../../analysis/classify';
 import { REVIEW_LEVELS, type ReviewLevel } from '../../analysis/config';
 import { Board, type Arrow } from '../../board/Board';
+import { Board3D } from '../../board/Board3D';
 import { Icon } from '../../ui/Icon';
 import { useSettings } from '../settings/settings';
 import { EvalBar } from './EvalBar';
@@ -19,6 +20,8 @@ import { MoveList } from './MoveList';
 import { useReview } from './store';
 import { Summary } from './Summary';
 import { TimeGraph } from './TimeGraph';
+import { LABEL_INFO } from '../../analysis/classify';
+import { speak, speechAvailable, spokenSan, stopSpeaking } from '../../ui/speech';
 import { GuessMode, PlayMode } from './TrainingModes';
 
 type Tab = 'summary' | 'moves';
@@ -26,7 +29,9 @@ type Tab = 'summary' | 'moves';
 export function ReviewScreen() {
   const { game, analysis, progress, error, ply, flipped, autoplay, errorFilter, stored } = useReview();
   const { goTo, step, flip, setAutoplay, setErrorFilter, analyze, cancel } = useReview.getState();
-  const { coordinates, animations, level, notation } = useSettings();
+  const { coordinates, animations, level, notation, narration, board3d } = useSettings();
+  const [presenting, setPresenting] = useState(false);
+  const speech = useRef<Promise<void>>(Promise.resolve());
   const [tab, setTab] = useState<Tab>('moves');
   const [speed, setSpeed] = useState(1.2);
   const [graph, setGraph] = useState<'eval' | 'time'>('eval');
@@ -43,9 +48,48 @@ export function ReviewScreen() {
       setAutoplay(false);
       return;
     }
-    const t = window.setTimeout(() => step(1), speed * 1000);
-    return () => window.clearTimeout(t);
-  }, [autoplay, ply, game, speed, step, setAutoplay]);
+    // Avec la narration, le coup suivant attend la fin de la lecture.
+    let cancelled = false;
+    let t = 0;
+    const wait = narration ? speech.current : Promise.resolve();
+    void wait.then(() => {
+      if (!cancelled) t = window.setTimeout(() => step(1), narration ? 500 : speed * 1000);
+    });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [autoplay, ply, game, speed, step, setAutoplay, narration]);
+
+  // Narration : lit le coup, son étiquette et l'explication.
+  useEffect(() => {
+    if (!narration || !game || ply === 0) return;
+    const m = game.moves[ply - 1];
+    const a = analysis?.moves[ply - 1];
+    const parts = [`${m.color === 'w' ? m.moveNumber + '.' : ''} ${spokenSan(m.san)}`];
+    if (a) {
+      parts.push(LABEL_INFO[a.label].name);
+      if (a.explanation && !['best', 'book', 'forced'].includes(a.label)) parts.push(a.explanation);
+    }
+    speech.current = speak(parts.join('. '));
+  }, [narration, ply, game, analysis]);
+  useEffect(() => () => stopSpeaking(), []);
+
+  // Mode présentation : plein écran, échiquier agrandi, seul le commentaire du coup reste visible.
+  useEffect(() => {
+    document.body.classList.toggle('presenting', presenting);
+    if (!presenting) return;
+    const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
+    if (el.requestFullscreen) el.requestFullscreen().catch(() => undefined);
+    else el.webkitRequestFullscreen?.();
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setPresenting(false);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('keydown', onEsc);
+      document.body.classList.remove('presenting');
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    };
+  }, [presenting]);
 
   // Affiche le résumé dès la fin de l'analyse (passage de « en cours » à « terminée »).
   const wasRunning = useRef(false);
@@ -164,24 +208,28 @@ export function ReviewScreen() {
     );
 
   return (
-    <div className="review">
+    <div className={`review ${presenting ? 'presenting' : ''}`}>
       <div className="board-column">
         <PlayerStrip {...top} />
         <div className="board-wrap">
           <EvalBar winWhite={winWhite} score={score} flipped={flipped} />
-          <Board
-            fen={fen}
-            flipped={flipped}
-            lastMove={lastMove}
-            arrows={arrows}
-            badge={!exploring && moveAnalysis && lastMove ? { square: lastMove.to, label: moveAnalysis.label } : undefined}
-            animateFrom={animations && (forward || exploring) && lastMove ? lastMove.from : undefined}
-            coordinates={coordinates}
-            onSwipe={(d) => (exploring ? (d < 0 ? setExplore(explore.slice(0, -1)) : undefined) : step(d))}
-            onSquareTap={onSquareTap}
-            selected={selected}
-            targets={targets}
-          />
+          {board3d ? (
+            <Board3D fen={fen} flipped={flipped} lastMove={lastMove} arrows={arrows} onSquareTap={onSquareTap} selected={selected} targets={targets} />
+          ) : (
+            <Board
+              fen={fen}
+              flipped={flipped}
+              lastMove={lastMove}
+              arrows={arrows}
+              badge={!exploring && moveAnalysis && lastMove ? { square: lastMove.to, label: moveAnalysis.label } : undefined}
+              animateFrom={animations && (forward || exploring) && lastMove ? lastMove.from : undefined}
+              coordinates={coordinates}
+              onSwipe={(d) => (exploring ? (d < 0 ? setExplore(explore.slice(0, -1)) : undefined) : step(d))}
+              onSquareTap={onSquareTap}
+              selected={selected}
+              targets={targets}
+            />
+          )}
         </div>
         <PlayerStrip {...bottom} />
         <div className="controls" role="toolbar" aria-label="Navigation">
@@ -203,6 +251,23 @@ export function ReviewScreen() {
           <button type="button" className="icon-btn" onClick={flip} aria-label="Retourner l'échiquier">
             <Icon name="flip" />
           </button>
+          <button type="button" className="icon-btn" onClick={() => setPresenting(!presenting)} aria-label={presenting ? 'Quitter la présentation' : 'Mode présentation'} aria-pressed={presenting}>
+            <Icon name={presenting ? 'close' : 'expand'} />
+          </button>
+          {speechAvailable() && (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => {
+                if (narration) stopSpeaking();
+                useSettings.getState().set({ narration: !narration });
+              }}
+              aria-label={narration ? 'Couper la narration' : 'Narration à voix haute'}
+              aria-pressed={narration}
+            >
+              <Icon name={narration ? 'speaker' : 'mute'} />
+            </button>
+          )}
           <label className="speed">
             <span className="sr-only">Vitesse de lecture</span>
             <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>

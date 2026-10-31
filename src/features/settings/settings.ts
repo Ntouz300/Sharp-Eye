@@ -12,10 +12,14 @@ export interface Settings {
   animations: boolean;
   /** Pseudos de l'utilisateur (chess.com, Lichess…), pour ses statistiques et ses puzzles. */
   usernames: string[];
+  /** Lecture à voix haute des coups et des explications pendant la revue. */
+  narration: boolean;
+  /** Échiquier incliné en perspective. */
+  board3d: boolean;
 }
 
 const KEY = 'sharp-eye:settings';
-const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [] };
+const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [], narration: false, board3d: false };
 
 function load(): Settings {
   try {

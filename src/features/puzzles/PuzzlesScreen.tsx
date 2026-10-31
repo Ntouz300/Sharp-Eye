@@ -7,6 +7,7 @@ import { LabelIcon } from '../../ui/LabelIcon';
 import { displaySan } from '../../ui/notation';
 import { useReview } from '../review/store';
 import { useSettings } from '../settings/settings';
+import { dailyPuzzle, dayKey } from '../progress/achievements';
 import { getProfile, recordAttempt, type PuzzleProfile } from './puzzles';
 
 type State = 'solving' | 'solved' | 'failed';
@@ -23,6 +24,8 @@ export function PuzzlesScreen({ initialTheme }: { initialTheme?: string }) {
   const [last, setLast] = useState<{ from: string; to: string } | undefined>();
   const [profile, setProfile] = useState<PuzzleProfile | null>(null);
   const { coordinates, notation } = useSettings();
+  const [isDaily, setIsDaily] = useState(false);
+  const daily = useLiveQuery(() => db.kv.get('daily'), [], undefined)?.value as { day: string; count: number; success: boolean } | undefined;
 
   useEffect(() => {
     void getProfile().then(setProfile);
@@ -38,7 +41,8 @@ export function PuzzlesScreen({ initialTheme }: { initialTheme?: string }) {
   const due = pool.filter((p) => p.due <= now).sort((a, b) => a.due - b.due || a.stage - b.stage);
   const queue = due.length ? due : ahead ? [...pool].sort((a, b) => a.due - b.due) : [];
 
-  const load = (p: StoredPuzzle | undefined) => {
+  const load = (p: StoredPuzzle | undefined, asDaily = false) => {
+    setIsDaily(asDaily);
     setCurrent(p ?? null);
     setFen(p?.fen ?? '');
     setSelected(undefined);
@@ -71,6 +75,23 @@ export function PuzzlesScreen({ initialTheme }: { initialTheme?: string }) {
         <span className="stat-big">{puzzles.length}</span>
         <span className="muted small">puzzles au total</span>
       </div>
+      {puzzles.length > 0 && (
+        <div>
+          {daily?.day === dayKey() ? (
+            <>
+              <span className="stat-big">{daily.success ? 'Réussi' : 'Raté'}</span>
+              <span className="muted small">défi du jour · {daily.count} réussis en tout</span>
+            </>
+          ) : (
+            <>
+              <button type="button" className="primary" onClick={() => load(dailyPuzzle(puzzles), true)}>
+                Défi du jour
+              </button>
+              <span className="muted small">un puzzle difficile, une seule chance</span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -133,6 +154,10 @@ export function PuzzlesScreen({ initialTheme }: { initialTheme?: string }) {
     setState(success ? 'solved' : 'failed');
     const r = await recordAttempt(current, success);
     setProfile(r.profile);
+    if (isDaily) {
+      const prev = (await db.kv.get('daily'))?.value as { count: number } | undefined;
+      await db.kv.put({ key: 'daily', value: { day: dayKey(), success, count: (prev?.count ?? 0) + (success ? 1 : 0) } });
+    }
   };
 
   const onTap = (sq: string) => {
@@ -192,6 +217,7 @@ export function PuzzlesScreen({ initialTheme }: { initialTheme?: string }) {
         </div>
         <div className="puzzle-side settings-card">
           <p className="puzzle-prompt">
+            {isDaily && <span className="chip active">Défi du jour</span>}
             <span className={`turn-dot ${color}`} aria-hidden="true" /> Trouve le meilleur coup pour les {color === 'w' ? 'blancs' : 'noirs'}.
           </p>
           <p className="muted small">

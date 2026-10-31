@@ -53,3 +53,13 @@ Choix faits là où le cahier des charges laissait une marge, ou s'en écarte, a
 - **Rejouer contre le moteur** : `UCI_LimitStrength` / `UCI_Elo` à partir de 1320 Elo (minimum de Stockfish), `Skill Level` en dessous ; un second worker est utilisé pour ne pas bloquer la revue.
 - **Sauvegarde JSON** : parties, analyses, puzzles, classement et réglages ; le cache des évaluations est exclu (il se recalcule). Restaurer fusionne au lieu d'effacer.
 - **Reportés** : mode étude (chapitres annotés) et export PDF/GIF. L'export PGN annoté et l'image de la position couvrent le partage pour l'instant.
+
+## Palier P3
+
+- **Narration** : synthèse vocale du système (Web Speech API, voix française de l'iPad), sans service externe. Le coup est lu en toutes lettres (« Cavalier prend f7, échec »), puis l'étiquette et l'explication. Pendant la lecture automatique, le coup suivant attend la fin de la phrase.
+- **Mode présentation** : plein écran quand le navigateur le permet (Safari iPad : seulement en partie), sinon la barre du haut est masquée. Seul le commentaire du coup reste à côté de l'échiquier agrandi.
+- **Vue 3D** : perspective calculée dans le SVG (projection de chaque case, pièces debout avec ombre) plutôt qu'une rotation CSS 3D, qui rendait l'échiquier flou. Disponible dans la revue ; toucher une case fonctionne aussi en 3D. Les badges d'étiquette et l'animation des pièces restent propres à la vue 2D.
+- **Défi du jour** : un puzzle choisi de façon stable pour la journée parmi la moitié la plus difficile des puzzles de l'utilisateur (au moins 10 candidats). Pas de serveur, donc pas de défi commun à tous les joueurs.
+- **Badges** : 14 badges calculés à partir des données locales (aucun stockage dédié), avec barre d'avancement.
+- **Bilan du mois** : parties, résultat, précision comparée au mois précédent, gaffes par partie, meilleure partie et ouverture la plus jouée.
+- **Reportés** : reconnaissance d'une position sur photo (demande un modèle de vision embarqué de plusieurs Mo, à évaluer) et empaquetage Capacitor pour l'App Store (demande Xcode et un compte Apple Developer). La PWA installée depuis Safari couvre l'usage hors ligne en attendant.

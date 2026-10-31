@@ -1699,3 +1699,102 @@ select {
   min-height: 44px;
   accent-color: var(--accent);
 }
+
+/* Mode présentation : l'échiquier occupe l'écran, seul le commentaire du coup reste. */
+body.presenting .topbar {
+  display: none;
+}
+
+.review.presenting {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg);
+  --chrome: 150px;
+  --panel-w: clamp(280px, 28vw, 380px);
+  --board: min(calc(100dvh - var(--chrome)), calc(100vw - var(--panel-w) - 72px));
+  align-content: center;
+}
+
+.review.presenting .panel > :not(.move-detail) {
+  display: none;
+}
+
+.review.presenting .move-detail {
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+/* Vue en perspective (3D) : plateau calculé dans le SVG, plus large que haut. */
+.board-wrap .board.board-3d-view {
+  aspect-ratio: 8.2 / 7.15;
+  height: auto;
+}
+
+.month-notes {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.badges {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.6rem;
+}
+
+.badges li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.6rem;
+  border-radius: var(--radius, 10px);
+  border: 1px solid var(--border);
+  opacity: 0.6;
+}
+
+.badges li.earned {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.badges li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.badge-medal {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.badges li.earned .badge-medal {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.badge-progress {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.badge-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
