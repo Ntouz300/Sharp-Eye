@@ -6,6 +6,7 @@ import { ReviewScreen } from './features/review/ReviewScreen';
 import { useReview, type Tab } from './features/review/store';
 import { applyTheme, useSettings } from './features/settings/settings';
 import { StatsScreen } from './features/stats/StatsScreen';
+import { TheoryScreen } from './features/theory/TheoryScreen';
 import { TrainingScreen } from './features/training/TrainingScreen';
 import { Icon } from './ui/Icon';
 import { setSpeechPrefs } from './ui/speech';
@@ -14,6 +15,7 @@ import { useToast } from './ui/toast';
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'games', label: 'Parties', icon: 'games' },
   { id: 'training', label: 'Entraînement', icon: 'training' },
+  { id: 'theory', label: 'Théorie', icon: 'book' },
   { id: 'progress', label: 'Progrès', icon: 'chart' },
   { id: 'profile', label: 'Profil', icon: 'user' },
 ];
@@ -60,6 +62,7 @@ export function App() {
       <main className="content" aria-hidden={reviewOpen || undefined}>
         {tab === 'games' && <GamesScreen />}
         {tab === 'training' && <TrainingScreen key={puzzleTheme} initialTheme={puzzleTheme} />}
+        {tab === 'theory' && <TheoryScreen />}
         {tab === 'progress' && <StatsScreen />}
         {tab === 'profile' && <ProfileScreen />}
       </main>

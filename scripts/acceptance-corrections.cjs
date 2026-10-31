@@ -528,13 +528,126 @@ async function point8(browser, w, h, nav) {
   await ctx.close();
 }
 
+// ---------- Point 9 : onglet Théorie ----------
+
+async function seedGame(page) {
+  await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const req = indexedDB.open('sharp-eye');
+        req.onsuccess = () => {
+          const tx = req.result.transaction('games', 'readwrite');
+          tx.objectStore('games').put({
+            id: 'g-vienne', source: '[White "Antoine"]\n[Black "Rival"]\n[Result "1-0"]\n[ECO "C25"]\n\n1. e4 e5 2. Nc3 Nf6 3. f4 1-0\n', white: 'Antoine', black: 'Rival',
+            result: '1-0', eco: 'C25', opening: 'Vienna Game', plies: 5, movesKey: 'vienne', importedAt: Date.now(), date: '2026.10.30',
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+        req.onerror = () => reject(req.error);
+      }),
+  );
+}
+
+async function point9(browser, w, h, nav) {
+  const tag = `${w}x${h}/${nav}`;
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+  await ctx.addInitScript(fakeSpeech, 30);
+  await ctx.addInitScript((n) => localStorage.getItem('sharp-eye:settings') || localStorage.setItem('sharp-eye:settings', JSON.stringify({ navSize: n, graphSize: n, usernames: ['Antoine'] })), nav);
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => ok(false, `${tag} erreur de page : ${e.message}`));
+  await page.goto(URL);
+  await seedGame(page);
+  await page.reload();
+  const tabs = await page.evaluate(() => [...document.querySelectorAll('.tab-btn')].map((b) => ({ label: b.textContent.trim(), cut: b.querySelector('.tab-label').scrollWidth > b.querySelector('.tab-label').clientWidth + 0.5, right: b.getBoundingClientRect().right })));
+  ok(tabs.map((t) => t.label).join(',') === 'Parties,Entraînement,Théorie,Progrès,Profil', `${tag} P9 Théorie entre Entraînement et Progrès`);
+  ok(tabs.every((t) => !t.cut && t.right <= w + 0.5), `${tag} P9 5 onglets sans libellé coupé`);
+  await page.getByRole('button', { name: 'Théorie', exact: true }).click();
+  const search = page.getByPlaceholder('Ouverture, nom anglais ou code ECO');
+  const first = async (q) => {
+    await search.fill(q);
+    return page.locator('.opening-tile strong').allTextContents();
+  };
+  ok((await first('vienne'))[0] === 'Partie viennoise', `${tag} P9 recherche « vienne »`);
+  ok((await first('Vienna'))[0] === 'Partie viennoise', `${tag} P9 recherche « Vienna »`);
+  ok((await first('caro'))[0] === 'Défense Caro-Kann', `${tag} P9 recherche « caro »`);
+  const c25 = await first('C25');
+  ok(c25.length === 1 && c25[0] === 'Partie viennoise', `${tag} P9 recherche « C25 »`);
+  await search.fill('');
+  ok((await page.locator('.opening-tile').count()) === 16, `${tag} P9 16 ouvertures`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p9-liste-${tag.replace('/', '-')}.png` });
+
+  await search.fill('vienne');
+  await page.locator('.opening-tile').first().click();
+  await page.waitForSelector('[data-testid="next-moves"]');
+  ok((await page.locator('.line-chips .chip').count()) >= 3 && (await page.locator('.line-chips .chip').count()) <= 5, `${tag} P9 ligne principale et 2 à 4 variantes`);
+  ok((await page.locator('.move-token.has-note').count()) >= 6, `${tag} P9 au moins 6 coups clés commentés`);
+  // Narration activée : le coup et son commentaire sont lus.
+  await page.getByRole('button', { name: 'Lire à voix haute' }).click();
+  await page.getByRole('button', { name: 'Coup suivant' }).click();
+  await page.getByRole('button', { name: 'Coup suivant' }).click();
+  await page.getByRole('button', { name: 'Coup suivant' }).click();
+  await page.waitForTimeout(400);
+  const note = (await page.getByTestId('theory-note').textContent()).trim();
+  ok(/cavalier protège e4/.test(note) && words(note) <= 15, `${tag} P9 commentaire du coup clé (« ${note} »)`);
+  const said = await page.evaluate(() => window.__spoken);
+  ok(said.some((t) => t.includes('Le cavalier protège e4')), `${tag} P9 narration du coup clé (${said.at(-1)})`);
+  ok((await page.locator('.move-token.now').textContent()).includes('Cc3'), `${tag} P9 notation choisie (française)`);
+  // Glisser sur l'échiquier recule d'un coup.
+  const box = await page.locator('.challenge-layout .board').boundingBox();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  ok((await page.locator('.move-token.now').textContent()).trim() === 'e5', `${tag} P9 glisser recule d’un coup`);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(200);
+  const nexts = await page.locator('.next-move').evaluateAll((els) => els.map((e) => ({ name: e.children[1].textContent, count: e.children[2].textContent })));
+  ok(nexts.length >= 1 && nexts.length <= 4 && nexts.every((n) => n.name), `${tag} P9 suites possibles (${nexts.map((n) => n.name).join(' | ')})`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p9-ouverture-${tag.replace('/', '-')}.png`, fullPage: true });
+  // Mes parties : nombre et score, puis bibliothèque filtrée.
+  const mine = (await page.getByTestId('my-games').textContent()) ?? '';
+  ok(/1 partie · score 1 \/ 1 \(100 %\)/.test(mine), `${tag} P9 mes parties dans l’ouverture (${mine.replace('Mes parties dans cette ouverture', '')})`);
+  await page.getByRole('button', { name: 'Voir dans la bibliothèque' }).click();
+  await page.waitForFunction(() => document.querySelector('.opening-filter')?.textContent.includes('Partie viennoise · 1'), null, { timeout: 5000 }).catch(() => {});
+  ok((await page.locator('.opening-filter', { hasText: 'Partie viennoise · 1' }).count()) === 1, `${tag} P9 bibliothèque filtrée sur l’ouverture`);
+  await page.getByRole('button', { name: 'Théorie', exact: true }).click();
+  await page.getByPlaceholder('Ouverture, nom anglais ou code ECO').fill('vienne');
+  await page.locator('.opening-tile').first().click();
+
+  // M'entraîner sur cette ligne : une erreur, puis la ligne jusqu'au bout.
+  await page.getByRole('button', { name: 'M’entraîner sur cette ligne' }).click();
+  const drill = page.getByTestId('line-drill');
+  const line = (await drill.getAttribute('data-line')).split(' ');
+  const tap = async (sq) => {
+    const b = await page.locator('[data-testid="line-drill"] .board').boundingBox();
+    const f = 'abcdefgh'.indexOf(sq[0]);
+    const r = Number(sq[1]) - 1;
+    await page.mouse.click(b.x + ((f + 0.5) * b.width) / 8, b.y + ((7 - r + 0.5) * b.height) / 8);
+  };
+  const c = new Chess();
+  await tap('d2');
+  await tap('d4');
+  ok(/Le coup théorique est e4/.test(await page.locator('.step-note').textContent()), `${tag} P9 entraînement : erreur corrigée`);
+  for (let i = 0; i < line.length; i += 2) {
+    const m = c.move(line[i]);
+    await tap(m.from);
+    await tap(m.to);
+    if (line[i + 1]) c.move(line[i + 1]);
+  }
+  ok((await page.getByTestId('drill-done').textContent()).includes('1 erreur'), `${tag} P9 entraînement : ligne terminée`);
+  ok((await overflowX(page)) <= 0, `${tag} P9 pas de défilement horizontal`);
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch();
-  for (const p of ['7', '8'].filter((p) => POINTS.includes(p)))
+  for (const p of ['7', '8', '9'].filter((p) => POINTS.includes(p)))
     for (const nav of NAVS)
       for (const sz of SIZES) {
         const [w, h] = sz.split('x').map(Number);
-        await (p === '7' ? point7 : point8)(browser, w, h, nav);
+        await { 7: point7, 8: point8, 9: point9 }[p](browser, w, h, nav);
       }
   if (POINTS.includes('3'))
     for (const sz of SIZES.slice(0, 1)) {

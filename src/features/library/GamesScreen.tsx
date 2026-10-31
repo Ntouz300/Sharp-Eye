@@ -13,6 +13,7 @@ import { useSync } from '../account/chesscom';
 import { PositionEditor } from '../position/PositionEditor';
 import { useReview } from '../review/store';
 import { useSettings } from '../settings/settings';
+import { gameInOpening, OPENINGS } from '../theory/openings';
 import { estimateMs, formatDuration, LEVELS, useBatch } from './batch';
 import { lichessGamePgn, parseGameLink } from './online';
 import { networkMessage, OnlineImport } from './OnlineImport';
@@ -56,9 +57,12 @@ export function GamesScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const libraryOpening = useReview((s) => s.libraryOpening);
+  const opening = OPENINGS.find((o) => o.id === libraryOpening);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (games ?? []).filter((g) => {
+      if (opening && !gameInOpening(g, opening)) return false;
       if (filters.speed !== 'all' && speedOf(g.timeControl) !== filters.speed) return false;
       if (filters.origin !== 'all' && (g.origin ?? 'pgn') !== filters.origin) return false;
       if (filters.state === 'analyzed' && g.analyzedLevel === undefined) return false;
@@ -67,7 +71,7 @@ export function GamesScreen() {
       if (!q) return true;
       return [g.white, g.black, g.opening, g.eco, g.date].some((v) => v?.toLowerCase().includes(q));
     });
-  }, [games, query, filters, me]);
+  }, [games, query, filters, me, opening]);
 
   const activeFilters = Object.entries(filters).filter(([, v]) => v !== 'all').length;
   const bySelection = selecting && selected.size > 0;
@@ -121,6 +125,16 @@ export function GamesScreen() {
 
       <SyncLine />
       <BatchBanner />
+      {opening && (
+        <p className="opening-filter">
+          <span className="chip active">
+            Ouverture : {opening.name} · {filtered.length}
+          </span>
+          <button type="button" className="link-btn" onClick={() => useReview.setState({ libraryOpening: undefined })}>
+            Tout afficher
+          </button>
+        </p>
+      )}
 
       {games && games.length > 0 && (
         <div className="list-tools">

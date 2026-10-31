@@ -88,6 +88,16 @@ export function Help() {
           <li><strong>Narration et présentation</strong> : la narration (menu « … ») lit chaque coup une fois, avec son classement et son explication ; en lecture automatique, le coup suivant attend la fin de la phrase. « Mode présentation » agrandit l’échiquier pour montrer une partie : les flèches et la lecture marchent toujours, et on en sort par la croix, la touche Échap ou le geste du système. L’échiquier en perspective 3D s’active dans les Réglages.</li>
         </ul>
       </section>
+      <section className="settings-card" id="theorie">
+        <h2>Théorie</h2>
+        <p>L’onglet Théorie réunit 16 ouvertures courantes : la ligne principale, 2 à 4 variantes et les coups clés commentés. Cherche par nom français ou anglais, par début de nom (« caro ») ou par code ECO (« C25 »).</p>
+        <ul className="month-notes">
+          <li><strong>Parcourir</strong> : ← → sous l’échiquier, les flèches du clavier ou un glissement du doigt. Touche un coup de la liste pour y aller.</li>
+          <li><strong>Suites possibles</strong> : jusqu’à 4 coups, du plus répandu au moins répandu, avec le nom de la variante. La popularité compte les lignes répertoriées dans la base ouverte de Lichess qui passent par ce coup ; le coup de la ligne étudiée est toujours proposé.</li>
+          <li><strong>M’entraîner sur cette ligne</strong> : l’app joue l’adversaire, tu retrouves les coups de ton camp ; une erreur affiche le coup théorique et son idée.</li>
+          <li><strong>Mes parties dans cette ouverture</strong> : nombre de parties et score, puis la bibliothèque filtrée sur l’ouverture.</li>
+        </ul>
+      </section>
       <section className="settings-card" id="voix">
         <h2>Voix de la narration</h2>
         <p>La narration dit le coup, son classement et une raison courte : « Cavalier f3. Imprécision. Mieux valait d4, qui prend le centre. » Le numéro du coup n’est pas lu, et les bons coups ne sont pas commentés, sauf les coups brillants, clés ou excellents.</p>
