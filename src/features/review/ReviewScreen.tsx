@@ -13,7 +13,7 @@ import type { ParsedGame } from '../../pgn/types';
 import { Icon } from '../../ui/Icon';
 import { displaySan } from '../../ui/notation';
 import { safeFilename, shareOrDownload } from '../../ui/share';
-import { MenuSheet, Sheet, type MenuItem } from '../../ui/Sheet';
+import { MenuSheet, rememberAnchor, Sheet, type MenuItem } from '../../ui/Sheet';
 import { useToast } from '../../ui/toast';
 import { speak, speechAvailable, spokenSan, stopSpeaking } from '../../ui/speech';
 import { useSettings } from '../settings/settings';
@@ -98,7 +98,15 @@ function TopBar({ title, onBack, backLabel = 'Parties', onMore, subtitle }: { ti
         {subtitle && <span className="rv-title-sub">{subtitle}</span>}
       </div>
       {onMore ? (
-        <button type="button" className="icon-btn subtle" onClick={onMore} aria-label="Plus d’actions">
+        <button
+          type="button"
+          className="icon-btn subtle"
+          onClick={(e) => {
+            rememberAnchor(e.currentTarget);
+            onMore();
+          }}
+          aria-label="Plus d’actions"
+        >
           <Icon name="more" />
         </button>
       ) : (
