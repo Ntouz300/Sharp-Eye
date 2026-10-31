@@ -31,10 +31,16 @@ export interface Settings {
   navSize: Size;
   /** Hauteur du graphique d'évaluation sous l'échiquier. */
   graphSize: Size;
+  /** Narration : lire aussi le coup joué avant son classement. */
+  sayMove: boolean;
+  /** Voix de la narration (identifiant de l'appareil) ; vide = première voix française. */
+  voiceURI: string;
+  /** Vitesse de la voix, de 0,8 à 1,4. */
+  speechRate: number;
 }
 
 const KEY = 'sharp-eye:settings';
-const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [], narration: false, board3d: false, playSpeed: 1.2, batchLevel: 'standard', navSize: 'normal', graphSize: 'normal' };
+const DEFAULTS: Settings = { theme: DEFAULT_THEME, notation: 'fr', level: 'standard', coordinates: true, animations: true, usernames: [], narration: false, board3d: false, playSpeed: 1.2, batchLevel: 'standard', navSize: 'normal', graphSize: 'normal', sayMove: true, voiceURI: '', speechRate: 1.05 };
 
 function load(): Settings {
   try {

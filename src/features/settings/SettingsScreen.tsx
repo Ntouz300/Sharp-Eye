@@ -94,6 +94,10 @@ export function SettingsScreen() {
           <input type="checkbox" checked={s.narration} onChange={(e) => s.set({ narration: e.target.checked })} />
           Narration : lire les coups et les explications à voix haute
         </label>
+        <label className="toggle">
+          <input type="checkbox" checked={s.sayMove} onChange={(e) => s.set({ sayMove: e.target.checked })} />
+          Lire aussi le coup joué (sinon, seulement son classement et la raison)
+        </label>
       </section>
       <section className="settings-card">
         <h2>Sauvegarde</h2>

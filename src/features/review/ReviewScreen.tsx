@@ -208,7 +208,7 @@ function MovesView({ game, title, onBack }: { game: ParsedGame; title: string; o
     let cancelled = false;
     let next = 0;
     const wait = window.setTimeout(() => {
-      void speak(narrationText(game.moves[ply - 1], analysisRef.current?.moves[ply - 1])).then(() => {
+      void speak(narrationText(game.moves[ply - 1], analysisRef.current?.moves[ply - 1], useSettings.getState().sayMove)).then(() => {
         if (cancelled) return;
         spokenPly.current = ply;
         // En lecture automatique, le coup suivant attend la fin de la phrase.
