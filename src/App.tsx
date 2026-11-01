@@ -76,7 +76,9 @@ export function App() {
             aria-label={t.label}
             onClick={() => setTab(t.id)}
           >
-            <Icon name={t.icon} size={22} />
+            <span className="tab-icon" aria-hidden="true">
+              <Icon name={t.icon} size={22} />
+            </span>
             <span className="tab-label">{t.label}</span>
           </button>
         ))}

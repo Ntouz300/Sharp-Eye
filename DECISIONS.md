@@ -119,3 +119,8 @@ Choix faits là où le cahier des charges laissait une marge, ou s'en écarte, a
 - **Ouverture en tête des commentaires** : `openingsByPly` donne, pour chaque demi-coup avant le 30e, la dernière ouverture nommée de la base Lichess (la plus précise : « Caro-Kann, attaque Hillbilly (B10) », « Gambit viennois »). Le détail du coup l’affiche en première ligne tant que la partie suit la théorie, puis « Sortie de la théorie : … » au premier coup hors livre. La narration la lit quand le nom change, pas à chaque coup.
 - **Exploration évaluée** : chaque coup essayé est analysé à profondeur 14 (2 lignes), l’un après l’autre sur le moteur unique, et classé avec les mêmes règles que la partie (`judgeTried` → `classifyMove`). Le panneau montre l’éval avant → après, le meilleur coup, la suite du moteur et la comparaison avec le coup joué dans la partie.
 - **Rien n’est écrit** : les essais et leurs évals restent en mémoire et disparaissent en revenant à la partie. Aucun appel à la base ; l’acceptation compare un instantané d’IndexedDB avant et après exploration et rechargement.
+
+## Menu (P5)
+
+- **Barre d'onglets** : sur iPad (plus de 640 px), barre flottante arrondie, centrée, avec ombre et flou d'arrière-plan ; l'onglet actif est une pastille pleine couleur d'accent (icône + libellé côte à côte), les autres restent discrets. Sur téléphone, la barre reste pleine largeur et l'onglet actif est marqué par une pastille teintée derrière l'icône.
+- **Taille** : la barre suit le réglage « Taille des flèches » (Grande et Très grande : boutons de 60 px, libellés 17 px). Les couleurs viennent du thème (`--accent`, `--surface`) via `color-mix`, donc chaque thème garde sa barre.
